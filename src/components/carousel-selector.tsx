@@ -15,69 +15,37 @@ import { Card, CardContent } from './ui/card';
 
 interface CarouselSelectorProps {
   value: number | null;
-  onChange: (value: number | null) => void;
+  onValueChange: (value: number | null) => void;
   min: number;
   max: number;
   disabled?: boolean;
 }
 
-export function CarouselSelector({ value, onChange, min, max, disabled }: CarouselSelectorProps) {
-  const [api, setApi] = React.useState<CarouselApi>();
+export function CarouselSelector({ value, onValueChange, min, max, disabled }: CarouselSelectorProps) {
   const numbers = Array.from({ length: max - min + 1 }, (_, i) => i + min);
+  const initialIndex = value !== null ? numbers.indexOf(value) : 0;
 
-  const handleItemClick = (index: number) => {
-    if (api && !disabled) {
-      api.scrollTo(index);
-    }
-  };
-
-  React.useEffect(() => {
-    if (!api) return;
-
-    const handleSelect = () => {
-      const selectedValue = numbers[api.selectedScrollSnap()];
-      onChange(selectedValue);
-    };
-
-    api.on('select', handleSelect);
-    
-    // Set initial position
-    if (value !== null && numbers.includes(value)) {
-        const index = numbers.indexOf(value);
-        if(api.selectedScrollSnap() !== index) {
-            api.scrollTo(index, true);
-        }
-    } else {
-        if(api.selectedScrollSnap() !== 0) {
-            api.scrollTo(0, true);
-        }
-    }
-
-    return () => {
-      api.off('select', handleSelect);
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [api, value]);
-
-  
   return (
     <Carousel
-      setApi={setApi}
       opts={{
         align: 'center',
         loop: false,
-        startIndex: value !== null && numbers.includes(value) ? numbers.indexOf(value) : 0
+        startIndex: initialIndex,
       }}
       className="w-full max-w-sm mx-auto"
     >
       <CarouselContent>
         {numbers.map((num, index) => (
-          <CarouselItem key={index} className="basis-1/5 cursor-pointer" onClick={() => handleItemClick(index)}>
-            <div className="p-1">
-              <Card className={cn(
+          <CarouselItem key={index} className="basis-1/5">
+             <div className="p-1">
+              <Card 
+                className={cn(
                   "border-transparent transition-colors",
-                  value === num ? "bg-accent text-accent-foreground" : "bg-secondary text-secondary-foreground"
-              )}>
+                  value === num ? "bg-accent text-accent-foreground" : "bg-secondary text-secondary-foreground",
+                  !disabled && "cursor-pointer"
+                )}
+                onClick={() => !disabled && onValueChange(num)}
+              >
                 <CardContent className="flex items-center justify-center p-3 md:p-6">
                   <span className="text-2xl font-semibold font-code">{num}</span>
                 </CardContent>

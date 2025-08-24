@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -124,7 +125,7 @@ export default function PlayerCard({
             </div>
             <CarouselSelector
               value={player.currentBid}
-              onChange={(value) => onBidChange(player.id, value)}
+              onValueChange={(value) => onBidChange(player.id, value)}
               min={0}
               max={cardsThisRound}
             />
@@ -137,7 +138,7 @@ export default function PlayerCard({
              <div className='text-center text-muted-foreground text-sm'>Bid: {player.currentBid}</div>
             <CarouselSelector
               value={player.currentTricks}
-              onChange={(value) => onTricksChange(player.id, value)}
+              onValueChange={(value) => onTricksChange(player.id, value)}
               min={0}
               max={cardsThisRound}
             />
