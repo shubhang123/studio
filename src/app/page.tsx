@@ -48,7 +48,7 @@ export default function Home() {
   };
 
   return (
-    <main className="container mx-auto p-4 md:p-8 min-h-screen flex flex-col items-center">
+    <main className="container mx-auto p-4 md:p-8 min-h-screen flex flex-col items-center bg-muted/40">
       <header className="w-full max-w-7xl flex items-center justify-center mb-8">
         <DiamondIcon className="h-10 w-10 text-primary" />
         <h1 className="text-4xl md:text-5xl font-headline font-bold ml-4">
