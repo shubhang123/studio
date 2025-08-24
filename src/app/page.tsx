@@ -28,7 +28,6 @@ export default function Home() {
         isBidSuccessful: null,
         avatarColor: `hsl(${index * (360 / playerNames.length)}, 70%, 50%)`,
         isDealer: index === 0,
-        isTurn: index === 1,
       }))
     );
     setGamePhase('playing');

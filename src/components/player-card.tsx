@@ -62,13 +62,11 @@ export default function PlayerCard({
   const cardStateClass = cn({
     'border-green-500/50 border-2': player.isBidSuccessful === true,
     'border-red-500/50 border-2': player.isBidSuccessful === false,
-    'border-accent/80 border-2 shadow-lg shadow-accent/20': player.isTurn
   });
 
   const cardsThisRound = startingCardCount - currentRound + 1;
   const isBidding = gamePhase === 'bidding';
   const isScoring = gamePhase === 'scoring';
-  const isLastPlayerToBid = allPlayers.filter(p => p.currentBid === null).length === 1 && player.currentBid === null;
 
 
   return (
@@ -129,7 +127,6 @@ export default function PlayerCard({
               onChange={(value) => onBidChange(player.id, value)}
               min={0}
               max={cardsThisRound}
-              disabled={!player.isTurn}
             />
           </div>
         )}

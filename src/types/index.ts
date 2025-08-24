@@ -9,7 +9,6 @@ export interface Player {
   isBidSuccessful: boolean | null;
   avatarColor: string;
   isDealer: boolean;
-  isTurn: boolean;
 }
 
 export interface BidSuggestion {

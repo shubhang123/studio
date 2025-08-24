@@ -45,20 +45,3 @@ export async function getAiBidSuggestion({
     return { error: "Failed to get suggestion from AI." };
   }
 }
-
-export async function passTurn(players: Player[], currentPlayerId: string) {
-    const currentPlayerIndex = players.findIndex(p => p.id === currentPlayerId);
-    
-    if (currentPlayerIndex === -1) {
-        return players; // Should not happen
-    }
-
-    const nextPlayerIndex = (currentPlayerIndex + 1) % players.length;
-    
-    const updatedPlayers = players.map((player, index) => ({
-        ...player,
-        isTurn: index === nextPlayerIndex,
-    }));
-
-    return updatedPlayers;
-}
