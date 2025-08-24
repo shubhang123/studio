@@ -35,8 +35,21 @@ export default function GameBoard({ initialPlayers, onRestartGame }: GameBoardPr
 
   const allBidsIn = useMemo(() => players.every(p => p.currentBid !== null), [players]);
   const allTricksIn = useMemo(() => players.every(p => p.currentTricks !== null), [players]);
-
+  
   const cardsThisRound = STARTING_CARD_COUNT - currentRound + 1;
+
+  const handleStartScoring = () => {
+    const totalBids = players.reduce((acc, player) => acc + (player.currentBid ?? 0), 0);
+    if (totalBids === cardsThisRound) {
+        toast({
+            title: "Invalid Bids",
+            description: `The total number of bids (${totalBids}) cannot equal the number of cards in hand (${cardsThisRound}). Someone has to break!`,
+            variant: "destructive",
+        });
+        return;
+    }
+    setGamePhase('scoring');
+  };
 
   const handleScoreRound = () => {
     const totalTricksTaken = players.reduce((acc, player) => acc + (player.currentTricks ?? 0), 0);
@@ -97,7 +110,7 @@ export default function GameBoard({ initialPlayers, onRestartGame }: GameBoardPr
             </AlertDialog>
 
             {gamePhase === 'bidding' && (
-              <Button onClick={() => setGamePhase('scoring')} disabled={!allBidsIn}>
+              <Button onClick={handleStartScoring} disabled={!allBidsIn}>
                 Start Scoring
               </Button>
             )}

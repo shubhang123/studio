@@ -13,3 +13,11 @@ export interface BidSuggestion {
   suggestedBid: number;
   reasoning: string;
 }
+
+export interface NumberSelectorProps {
+  value: number | null;
+  onChange: (value: number | null) => void;
+  min: number;
+  max: number;
+  disabled?: boolean;
+}

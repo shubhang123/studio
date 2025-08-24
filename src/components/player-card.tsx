@@ -4,7 +4,6 @@ import { useState } from 'react';
 import type { Player, BidSuggestion } from '@/types';
 import { getAiBidSuggestion } from '@/app/actions';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from './ui/card';
-import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Button } from './ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
@@ -12,6 +11,7 @@ import { Wand2, Loader2, TrendingUp, Flame } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from './ui/badge';
+import NumberSelector from './number-selector';
 
 interface PlayerCardProps {
   player: Player;
@@ -63,6 +63,8 @@ export default function PlayerCard({
     'border-red-500 border-2': player.isBidSuccessful === false,
   });
 
+  const cardsThisRound = startingCardCount - currentRound + 1;
+
   return (
     <Card className={cn("flex flex-col", cardStateClass)}>
       <CardHeader>
@@ -80,22 +82,12 @@ export default function PlayerCard({
       </CardHeader>
       <CardContent className="flex-grow space-y-4">
         <div className="space-y-2">
-          <Label htmlFor={`bid-${player.id}`}>Bid</Label>
-          <div className="flex gap-2">
-            <Input
-              id={`bid-${player.id}`}
-              type="number"
-              min="0"
-              max={startingCardCount - currentRound + 1}
-              value={player.currentBid ?? ''}
-              onChange={(e) => onBidChange(player.id, e.target.value === '' ? null : Number(e.target.value))}
-              disabled={gamePhase !== 'bidding'}
-              className="font-code"
-            />
+          <div className="flex items-center justify-between">
+            <Label htmlFor={`bid-${player.id}`}>Bid</Label>
             {gamePhase === 'bidding' && (
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" size="icon" onClick={handleGetAiSuggestion} disabled={isAiLoading}>
+                  <Button variant="outline" size="icon" onClick={handleGetAiSuggestion} disabled={isAiLoading} className="h-8 w-8">
                     {isAiLoading ? <Loader2 className="animate-spin" /> : <Wand2 />}
                   </Button>
                 </PopoverTrigger>
@@ -117,18 +109,22 @@ export default function PlayerCard({
               </Popover>
             )}
           </div>
+          <NumberSelector
+            value={player.currentBid}
+            onChange={(value) => onBidChange(player.id, value)}
+            min={0}
+            max={cardsThisRound}
+            disabled={gamePhase !== 'bidding'}
+          />
         </div>
         <div className="space-y-2">
           <Label htmlFor={`tricks-${player.id}`}>Tricks Taken</Label>
-          <Input
-            id={`tricks-${player.id}`}
-            type="number"
-            min="0"
-            max={startingCardCount - currentRound + 1}
-            value={player.currentTricks ?? ''}
-            onChange={(e) => onTricksChange(player.id, e.target.value === '' ? null : Number(e.target.value))}
+          <NumberSelector
+            value={player.currentTricks}
+            onChange={(value) => onTricksChange(player.id, value)}
+            min={0}
+            max={cardsThisRound}
             disabled={gamePhase !== 'scoring'}
-            className="font-code"
           />
         </div>
       </CardContent>
