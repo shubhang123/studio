@@ -14,6 +14,11 @@ export interface Player extends PlayerSetup {
   isDealer: boolean;
 }
 
+export interface GameConfig {
+  enableStreakBonus: boolean;
+  enablePerfectGameBonus: boolean;
+}
+
 export interface GameState {
   id: string;
   players: Player[];
@@ -21,6 +26,7 @@ export interface GameState {
   startingCardCount: number;
   gamePhase: 'setup' | 'bidding' | 'scoring' | 'round-end' | 'game-over';
   timestamp: number;
+  config: GameConfig;
 }
 
 export interface BidSuggestion {

@@ -5,7 +5,7 @@ import GameSetup from '@/components/game-setup';
 import { DiamondIcon } from '@/components/icons';
 import { useGameStore } from '@/hooks/use-game-store';
 import { useRouter } from 'next/navigation';
-import type { PlayerSetup } from '@/types';
+import type { PlayerSetup, GameConfig } from '@/types';
 import { useEffect } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 
@@ -23,8 +23,8 @@ export default function SetupPage() {
     }, [currentGame, router, user, loading]);
 
 
-    const handleStartGame = (playerSetups: PlayerSetup[], cards: number) => {
-        startGame(playerSetups, cards);
+    const handleStartGame = (playerSetups: PlayerSetup[], cards: number, config: GameConfig) => {
+        startGame(playerSetups, cards, config);
         router.push('/game');
     }
     

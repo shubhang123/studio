@@ -1,6 +1,6 @@
 
 import { create } from 'zustand';
-import type { Player, GameState, PlayerSetup } from '@/types';
+import type { Player, GameState, PlayerSetup, GameConfig } from '@/types';
 import { calculateScores, checkForPerfectGameBonus } from '@/lib/game-logic';
 import { doc, setDoc, onSnapshot, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -12,7 +12,7 @@ type GameStore = {
   initializeFirestore: (userId: string) => void;
   clearStore: () => void;
   startNewGame: () => void;
-  startGame: (playerSetups: PlayerSetup[], startingCardCount: number) => void;
+  startGame: (playerSetups: PlayerSetup[], startingCardCount: number, config: GameConfig) => void;
   restartGame: () => void;
   endGame: () => void;
   setGamePhase: (phase: GameState['gamePhase']) => void;
@@ -29,6 +29,10 @@ const getInitialState = (): GameState => ({
     startingCardCount: 13,
     gamePhase: 'setup',
     timestamp: Date.now(),
+    config: {
+        enableStreakBonus: true,
+        enablePerfectGameBonus: true,
+    }
 });
 
 let firestoreUnsubscribe: (() => void) | null = null;
@@ -83,7 +87,7 @@ export const useGameStore = create<GameStore>()((set, get) => ({
     saveStateToFirestore(newState);
   },
   
-  startGame: (playerSetups, startingCardCount) => {
+  startGame: (playerSetups, startingCardCount, config) => {
     const newPlayers: Player[] = playerSetups.map((setup, index) => ({
       ...setup,
       id: crypto.randomUUID(),
@@ -100,6 +104,7 @@ export const useGameStore = create<GameStore>()((set, get) => ({
       ...(get().currentGame ?? getInitialState()),
       players: newPlayers,
       startingCardCount,
+      config,
       currentRound: 1,
       gamePhase: 'bidding' as const,
       timestamp: Date.now(),
@@ -116,15 +121,20 @@ export const useGameStore = create<GameStore>()((set, get) => ({
     
     const playerSetups = currentGame.players.map(p => ({ name: p.name, avatarColor: p.avatarColor }));
     const startingCardCount = currentGame.startingCardCount;
+    const config = currentGame.config;
 
-    get().startGame(playerSetups, startingCardCount);
+    get().startGame(playerSetups, startingCardCount, config);
   },
 
   endGame: () => {
     const state = get();
     if (!state.currentGame) return;
     
-    let finalPlayers = checkForPerfectGameBonus(state.currentGame.players, state.currentGame.startingCardCount);
+    let finalPlayers = checkForPerfectGameBonus(
+        state.currentGame.players, 
+        state.currentGame.startingCardCount,
+        state.currentGame.config
+    );
 
     const finalGameState = {
         ...state.currentGame,
@@ -181,8 +191,8 @@ export const useGameStore = create<GameStore>()((set, get) => ({
     const state = get();
     if (!state.currentGame) return;
 
-    const { players, currentRound } = state.currentGame;
-    const updatedPlayers = calculateScores(players, currentRound);
+    const { players, currentRound, config } = state.currentGame;
+    const updatedPlayers = calculateScores(players, currentRound, config);
     
     const newCurrentGame = { ...state.currentGame, players: updatedPlayers };
     const newState = { currentGame: newCurrentGame, gameHistory: state.gameHistory };

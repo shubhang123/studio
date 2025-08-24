@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -8,11 +9,12 @@ import { Label } from "@/components/ui/label";
 import { UserPlus, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Slider } from "@/components/ui/slider";
-import type { PlayerSetup } from "@/types";
+import type { PlayerSetup, GameConfig } from "@/types";
 import { Avatar, AvatarFallback } from "./ui/avatar";
+import { Switch } from "./ui/switch";
 
 interface GameSetupProps {
-  onStartGame: (players: PlayerSetup[], startingCardCount: number) => void;
+  onStartGame: (players: PlayerSetup[], startingCardCount: number, config: GameConfig) => void;
 }
 
 const AVATAR_COLORS = [
@@ -27,6 +29,10 @@ export default function GameSetup({ onStartGame }: GameSetupProps) {
     { name: "Player 3", avatarColor: AVATAR_COLORS[2] }
 ]);
   const [startingCardCount, setStartingCardCount] = useState(13);
+  const [config, setConfig] = useState<GameConfig>({
+    enableStreakBonus: true,
+    enablePerfectGameBonus: true,
+  });
   const { toast } = useToast();
 
   const handleAddPlayer = () => {
@@ -62,6 +68,10 @@ export default function GameSetup({ onStartGame }: GameSetupProps) {
     setPlayers(newPlayers);
   };
 
+  const handleConfigChange = (key: keyof GameConfig, value: boolean) => {
+    setConfig(prev => ({...prev, [key]: value}));
+  };
+
   const handleStartGame = () => {
     const validPlayers = players.filter((p) => p.name.trim() !== "");
     if (validPlayers.length < 2) {
@@ -81,7 +91,7 @@ export default function GameSetup({ onStartGame }: GameSetupProps) {
       });
       return;
     }
-    onStartGame(validPlayers, startingCardCount);
+    onStartGame(validPlayers, startingCardCount, config);
   };
 
   return (
@@ -136,6 +146,35 @@ export default function GameSetup({ onStartGame }: GameSetupProps) {
                 max={15}
                 step={1}
             />
+        </div>
+        <div className="space-y-4">
+            <Label>Game Rules</Label>
+            <div className="flex items-center justify-between p-3 rounded-md bg-secondary/50">
+                <Label htmlFor="streak-bonus" className="flex flex-col space-y-1">
+                    <span>Streak Bonuses</span>
+                    <span className="font-normal leading-snug text-muted-foreground">
+                        Award extra points for consecutive successful bids.
+                    </span>
+                </Label>
+                <Switch 
+                    id="streak-bonus" 
+                    checked={config.enableStreakBonus} 
+                    onCheckedChange={(value) => handleConfigChange('enableStreakBonus', value)}
+                />
+            </div>
+             <div className="flex items-center justify-between p-3 rounded-md bg-secondary/50">
+                <Label htmlFor="perfect-game-bonus" className="flex flex-col space-y-1">
+                    <span>Perfect Game Bonus</span>
+                    <span className="font-normal leading-snug text-muted-foreground">
+                        Award 50 bonus points for a flawless game.
+                    </span>
+                </Label>
+                <Switch 
+                    id="perfect-game-bonus" 
+                    checked={config.enablePerfectGameBonus}
+                    onCheckedChange={(value) => handleConfigChange('enablePerfectGameBonus', value)}
+                />
+            </div>
         </div>
       </CardContent>
       <CardFooter>
