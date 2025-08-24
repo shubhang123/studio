@@ -40,27 +40,24 @@ export function CarouselSelector({ value, onChange, min, max, disabled }: Carous
     };
 
     api.on('select', handleSelect);
+    
+    // Set initial position
+    if (value !== null && numbers.includes(value)) {
+        const index = numbers.indexOf(value);
+        if(api.selectedScrollSnap() !== index) {
+            api.scrollTo(index, true);
+        }
+    } else {
+        if(api.selectedScrollSnap() !== 0) {
+            api.scrollTo(0, true);
+        }
+    }
 
     return () => {
       api.off('select', handleSelect);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [api]);
-
-  React.useEffect(() => {
-    if (api) {
-        if (value !== null && numbers.includes(value)) {
-            const index = numbers.indexOf(value);
-            if (api.selectedScrollSnap() !== index) {
-                api.scrollTo(index, true);
-            }
-        } else if (value === null) {
-            if (api.selectedScrollSnap() !== 0) {
-                api.scrollTo(0, true);
-            }
-        }
-    }
-  }, [api, value, numbers]);
+  }, [api, value]);
 
   
   return (
@@ -69,6 +66,7 @@ export function CarouselSelector({ value, onChange, min, max, disabled }: Carous
       opts={{
         align: 'center',
         loop: false,
+        startIndex: value !== null && numbers.includes(value) ? numbers.indexOf(value) : 0
       }}
       className="w-full max-w-sm mx-auto"
     >
