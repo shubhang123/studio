@@ -86,25 +86,29 @@ export default function Home() {
 
         <div className="space-y-4 text-center">
            {currentGame && currentGame.players.length > 0 ? (
-            <Card className="bg-secondary/80 backdrop-blur-sm text-center p-6 border-accent">
-               <CardHeader>
-                  <CardTitle>Game in Progress</CardTitle>
-                  <p className="text-muted-foreground">
-                    Round {currentGame.currentRound} with {currentGame.players.map(p => p.name).join(', ')}
-                  </p>
-               </CardHeader>
-               <CardContent>
-                  <Button size="lg" onClick={handleResumeGame}>
-                      <Play className="mr-2" /> Resume Game
-                  </Button>
-               </CardContent>
-            </Card>
-          ) : null}
-
-          <Button size="lg" onClick={handleStartNewGame} className={currentGame ? 'w-full' : 'w-1/2'}>
-            <Play className="mr-2" /> Start New Game
-          </Button>
-
+            <div className="space-y-4">
+              <Card className="bg-secondary/80 backdrop-blur-sm text-center p-6 border-accent">
+                <CardHeader>
+                    <CardTitle>Game in Progress</CardTitle>
+                    <p className="text-muted-foreground">
+                      Round {currentGame.currentRound} with {currentGame.players.map(p => p.name).join(', ')}
+                    </p>
+                </CardHeader>
+                <CardContent>
+                    <Button size="lg" onClick={handleResumeGame} variant="default" className="bg-accent text-accent-foreground hover:bg-accent/90">
+                        <Play className="mr-2" /> Resume Game
+                    </Button>
+                </CardContent>
+              </Card>
+               <Button size="lg" onClick={handleStartNewGame} variant="outline" className="w-full">
+                Start New Game
+              </Button>
+            </div>
+          ) : (
+             <Button size="lg" onClick={handleStartNewGame} className="w-1/2">
+                <Play className="mr-2" /> Start New Game
+            </Button>
+          )}
         </div>
       </div>
     </div>
