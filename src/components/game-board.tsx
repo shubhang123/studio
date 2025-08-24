@@ -77,7 +77,7 @@ export default function GameBoard({ initialPlayers, startingCardCount, onRestart
         setGamePhase('game-over');
     } else {
         const nextRound = currentRound + 1;
-        const dealerIndex = (nextRound - 1) % players.length;
+        const dealerIndex = (currentRound) % players.length;
         const turnIndex = (dealerIndex + 1) % players.length;
         setPlayers(players.map((p, index) => ({ 
           ...p, 

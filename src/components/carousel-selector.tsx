@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from 'react';
-import { useEffect } from 'react';
 import {
   Carousel,
   CarouselContent,
@@ -25,7 +24,7 @@ export function CarouselSelector({ value, onChange, min, max, disabled }: Carous
   const [api, setApi] = React.useState<CarouselApi>();
   const numbers = Array.from({ length: max - min + 1 }, (_, i) => i + min);
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (!api) return;
 
     const handleSelect = () => {
@@ -38,8 +37,11 @@ export function CarouselSelector({ value, onChange, min, max, disabled }: Carous
     // Set initial position
     if (value !== null && numbers.includes(value)) {
       api.scrollTo(numbers.indexOf(value), true);
+    } else if (api.selectedScrollSnap() !== 0) {
+       api.scrollTo(0, true);
     } else {
-      api.scrollTo(0, true);
+      // If no value, ensure the first item is selected visually
+      onChange(numbers[0]);
     }
 
     return () => {
@@ -61,8 +63,8 @@ export function CarouselSelector({ value, onChange, min, max, disabled }: Carous
           <CarouselItem key={index} className="basis-1/5">
             <div className="p-1">
               <Card className={cn(
-                  "border-transparent",
-                  value === num ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"
+                  "border-transparent transition-colors",
+                  value === num ? "bg-accent text-accent-foreground" : "bg-secondary text-secondary-foreground"
               )}>
                 <CardContent className="flex items-center justify-center p-3 md:p-6">
                   <span className="text-2xl font-semibold font-code">{num}</span>
