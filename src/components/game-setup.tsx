@@ -6,12 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { UserPlus, X } from "lucide-react";
+import { UserPlus, X, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Slider } from "@/components/ui/slider";
 import type { PlayerSetup, GameConfig } from "@/types";
 import { Avatar, AvatarFallback } from "./ui/avatar";
 import { Switch } from "./ui/switch";
+import { findUserByEmail } from "@/app/actions";
+import { useAuth } from "@/hooks/use-auth";
 
 interface GameSetupProps {
   onStartGame: (players: PlayerSetup[], startingCardCount: number, config: GameConfig) => void;
@@ -23,49 +25,53 @@ const AVATAR_COLORS = [
 ];
 
 export default function GameSetup({ onStartGame }: GameSetupProps) {
-  const [players, setPlayers] = useState<PlayerSetup[]>([
-    { name: "Player 1", avatarColor: AVATAR_COLORS[0] }, 
-    { name: "Player 2", avatarColor: AVATAR_COLORS[1] }, 
-    { name: "Player 3", avatarColor: AVATAR_COLORS[2] }
-]);
+  const { user } = useAuth();
+  const [players, setPlayers] = useState<PlayerSetup[]>([]);
   const [startingCardCount, setStartingCardCount] = useState(13);
   const [config, setConfig] = useState<GameConfig>({
     enableStreakBonus: true,
     enablePerfectGameBonus: true,
   });
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [isSearching, setIsSearching] = useState(false);
   const { toast } = useToast();
 
-  const handleAddPlayer = () => {
-    if (players.length < 8) {
-        const nextColor = AVATAR_COLORS[players.length % AVATAR_COLORS.length];
-        setPlayers([...players, { name: `Player ${players.length + 1}`, avatarColor: nextColor }]);
+  const handleAddPlayer = async () => {
+    if (!inviteEmail) return;
+    if (players.length >= 8) {
+      toast({ title: "Maximum Players", description: "You can have a maximum of 8 players.", variant: "destructive" });
+      return;
+    }
+    if (players.some(p => p.email === inviteEmail) || user?.email === inviteEmail) {
+      toast({ title: "Player Already Added", description: "This player is already in the game.", variant: "destructive" });
+      setInviteEmail("");
+      return;
+    }
+
+    setIsSearching(true);
+    const foundUser = await findUserByEmail(inviteEmail);
+    setIsSearching(false);
+
+    if (foundUser) {
+      const nextColor = AVATAR_COLORS[players.length % AVATAR_COLORS.length];
+      setPlayers([...players, { 
+        uid: foundUser.uid, 
+        name: foundUser.name, 
+        email: foundUser.email,
+        avatarColor: nextColor 
+      }]);
+      setInviteEmail("");
     } else {
       toast({
-        title: "Maximum Players",
-        description: "You can have a maximum of 8 players.",
+        title: "User Not Found",
+        description: "No registered user found with that email address.",
         variant: "destructive",
       });
     }
   };
 
-  const handleRemovePlayer = (index: number) => {
-    if (players.length > 2) {
-      const newPlayers = [...players];
-      newPlayers.splice(index, 1);
-      setPlayers(newPlayers);
-    } else {
-       toast({
-        title: "Minimum Players",
-        description: "You need at least 2 players to start.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handlePlayerNameChange = (index: number, name: string) => {
-    const newPlayers = [...players];
-    newPlayers[index].name = name;
-    setPlayers(newPlayers);
+  const handleRemovePlayer = (uid: string) => {
+    setPlayers(players.filter(p => p.uid !== uid));
   };
 
   const handleConfigChange = (key: keyof GameConfig, value: boolean) => {
@@ -73,25 +79,27 @@ export default function GameSetup({ onStartGame }: GameSetupProps) {
   };
 
   const handleStartGame = () => {
-    const validPlayers = players.filter((p) => p.name.trim() !== "");
-    if (validPlayers.length < 2) {
-      toast({
-        title: "Invalid Setup",
-        description: "Please enter names for at least two players.",
-        variant: "destructive",
-      });
+    if (!user) {
+        toast({ title: "Not Logged In", description: "You must be logged in to start a game.", variant: "destructive" });
+        return;
+    }
+    
+    // Add the host to the player list
+    const hostPlayer: PlayerSetup = {
+        uid: user.uid,
+        name: user.email?.split('@')[0] || 'Host',
+        email: user.email!,
+        avatarColor: AVATAR_COLORS[players.length % AVATAR_COLORS.length]
+    };
+
+    const allPlayers = [hostPlayer, ...players];
+
+    if (allPlayers.length < 2) {
+      toast({ title: "Invalid Setup", description: "You need at least two players to start a game.", variant: "destructive" });
       return;
     }
-    const playerNames = validPlayers.map(p => p.name);
-    if (new Set(playerNames).size !== playerNames.length) {
-      toast({
-        title: "Duplicate Names",
-        description: "Player names must be unique.",
-        variant: "destructive",
-      });
-      return;
-    }
-    onStartGame(validPlayers, startingCardCount, config);
+
+    onStartGame(allPlayers, startingCardCount, config);
   };
 
   return (
@@ -104,35 +112,42 @@ export default function GameSetup({ onStartGame }: GameSetupProps) {
         <div className="space-y-4">
           <Label>Players (2-8)</Label>
           <div className="space-y-2">
-            {players.map((player, index) => (
-              <div key={index} className="flex items-center gap-2">
+            {/* Display invited players */}
+            {players.map((player) => (
+              <div key={player.uid} className="flex items-center gap-2 p-2 rounded-md bg-secondary/50">
                 <Avatar className="h-8 w-8">
                     <AvatarFallback style={{backgroundColor: player.avatarColor, color: '#fff'}}>
                         {player.name.charAt(0)}
                     </AvatarFallback>
                 </Avatar>
-                <Input
-                  type="text"
-                  value={player.name}
-                  onChange={(e) => handlePlayerNameChange(index, e.target.value)}
-                  placeholder={`Player ${index + 1}`}
-                />
+                <div className="flex-grow">
+                    <p className="font-medium">{player.name}</p>
+                    <p className="text-xs text-muted-foreground">{player.email}</p>
+                </div>
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={() => handleRemovePlayer(index)}
-                  disabled={players.length <= 2}
-                  aria-label={`Remove Player ${index + 1}`}
+                  onClick={() => handleRemovePlayer(player.uid)}
+                  aria-label={`Remove ${player.name}`}
                 >
                   <X className="h-4 w-4" />
                 </Button>
               </div>
             ))}
           </div>
-          <Button variant="outline" onClick={handleAddPlayer} disabled={players.length >= 8} className="w-full">
-            <UserPlus className="mr-2" />
-            Add Player
-          </Button>
+           <div className="flex items-center gap-2">
+                <Input
+                  type="email"
+                  value={inviteEmail}
+                  onChange={(e) => setInviteEmail(e.target.value)}
+                  placeholder="Enter player's email to invite"
+                  disabled={isSearching}
+                />
+                <Button onClick={handleAddPlayer} disabled={players.length >= 7 || isSearching}>
+                  {isSearching ? <Loader2 className="animate-spin" /> : <UserPlus />}
+                  Add
+                </Button>
+            </div>
         </div>
         <div className="space-y-4">
             <div className="flex justify-between items-center">

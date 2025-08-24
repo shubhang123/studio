@@ -2,7 +2,7 @@
 import { create } from 'zustand';
 import type { Player, GameState, PlayerSetup, GameConfig } from '@/types';
 import { calculateScores, checkForPerfectGameBonus } from '@/lib/game-logic';
-import { doc, setDoc, onSnapshot, getDoc } from 'firebase/firestore';
+import { doc, setDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
 type GameStore = {
@@ -90,7 +90,7 @@ export const useGameStore = create<GameStore>()((set, get) => ({
   startGame: (playerSetups, startingCardCount, config) => {
     const newPlayers: Player[] = playerSetups.map((setup, index) => ({
       ...setup,
-      id: crypto.randomUUID(),
+      id: setup.uid, // Use UID as the player ID
       totalScore: 0,
       bidHistory: [],
       currentBid: null,
@@ -119,7 +119,12 @@ export const useGameStore = create<GameStore>()((set, get) => ({
     const currentGame = get().currentGame;
     if (!currentGame) return;
     
-    const playerSetups = currentGame.players.map(p => ({ name: p.name, avatarColor: p.avatarColor }));
+    const playerSetups = currentGame.players.map(p => ({ 
+        uid: p.uid,
+        name: p.name, 
+        email: p.email,
+        avatarColor: p.avatarColor 
+    }));
     const startingCardCount = currentGame.startingCardCount;
     const config = currentGame.config;
 

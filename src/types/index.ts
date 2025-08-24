@@ -1,5 +1,8 @@
+
 export interface PlayerSetup {
+  uid: string;
   name: string;
+  email: string;
   avatarColor: string;
 }
 

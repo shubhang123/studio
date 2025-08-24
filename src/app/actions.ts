@@ -1,8 +1,11 @@
+
 "use server";
 
 import { revalidatePath } from "next/cache";
 import { getBidSuggestion } from "@/ai/flows/smart-bidding-advisor";
 import type { Player, BidSuggestion } from "@/types";
+import { collection, getDocs, query, where } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
 interface GetBidSuggestionParams {
   player: Player;
@@ -43,5 +46,27 @@ export async function getAiBidSuggestion({
   } catch (e) {
     console.error(e);
     return { error: "Failed to get suggestion from AI." };
+  }
+}
+
+export async function findUserByEmail(email: string): Promise<{ uid: string; name: string; email: string } | null> {
+  try {
+    const usersRef = collection(db, "users");
+    const q = query(usersRef, where("email", "==", email));
+    const querySnapshot = await getDocs(q);
+    
+    if (querySnapshot.empty) {
+      return null;
+    }
+
+    const userData = querySnapshot.docs[0].data();
+    return {
+      uid: querySnapshot.docs[0].id,
+      name: userData.name,
+      email: userData.email,
+    };
+  } catch (error) {
+    console.error("Error finding user by email:", error);
+    return null;
   }
 }
