@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from 'react';
@@ -23,6 +24,12 @@ interface CarouselSelectorProps {
 export function CarouselSelector({ value, onChange, min, max, disabled }: CarouselSelectorProps) {
   const [api, setApi] = React.useState<CarouselApi>();
   const numbers = Array.from({ length: max - min + 1 }, (_, i) => i + min);
+
+  const handleItemClick = (index: number) => {
+    if (api && !disabled) {
+      api.scrollTo(index);
+    }
+  };
 
   React.useEffect(() => {
     if (!api) return;
@@ -56,11 +63,11 @@ export function CarouselSelector({ value, onChange, min, max, disabled }: Carous
         align: 'center',
         loop: false,
       }}
-      className="w-full max-w-xs mx-auto"
+      className="w-full max-w-sm mx-auto"
     >
       <CarouselContent>
         {numbers.map((num, index) => (
-          <CarouselItem key={index} className="basis-1/5">
+          <CarouselItem key={index} className="basis-1/5 cursor-pointer" onClick={() => handleItemClick(index)}>
             <div className="p-1">
               <Card className={cn(
                   "border-transparent transition-colors",
