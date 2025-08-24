@@ -8,7 +8,7 @@ import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
 import { calculateScores, checkForPerfectGameBonus } from '@/lib/game-logic';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from './ui/alert-dialog';
-import { Award, RotateCcw } from 'lucide-react';
+import { Award, RotateCcw, Swords, Hand } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface GameBoardProps {
@@ -82,13 +82,44 @@ export default function GameBoard({ initialPlayers, onRestartGame }: GameBoardPr
   const sortedPlayersByScore = useMemo(() => [...players].sort((a, b) => b.totalScore - a.totalScore), [players]);
   const winner = gamePhase === 'game-over' ? sortedPlayersByScore[0] : null;
 
+  const renderPhaseTitle = () => {
+    switch(gamePhase) {
+      case 'bidding':
+        return <><Hand className="mr-2" /> Place Your Bids</>
+      case 'scoring':
+        return <><Swords className="mr-2" /> Score The Round</>
+      case 'round-end':
+      case 'game-over':
+        return 'Round Over'
+      default:
+        return ''
+    }
+  }
+
+  const renderPlayerCards = () => (
+     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        {players.map((player) => (
+            <PlayerCard
+              key={player.id}
+              player={player}
+              allPlayers={players}
+              currentRound={currentRound}
+              startingCardCount={STARTING_CARD_COUNT}
+              gamePhase={gamePhase}
+              onBidChange={handleBidChange}
+              onTricksChange={handleTricksChange}
+            />
+          ))}
+    </div>
+  )
+
   return (
     <div className="space-y-6">
-      <Card>
+      <Card className="bg-card/80 backdrop-blur-sm">
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
-            <CardTitle>Round {currentRound} / {STARTING_CARD_COUNT}</CardTitle>
-            <CardDescription>Cards per hand: {cardsThisRound}</CardDescription>
+            <CardTitle className="flex items-center">{renderPhaseTitle()}</CardTitle>
+            <CardDescription>Round {currentRound} / {STARTING_CARD_COUNT} &middot; {cardsThisRound} cards per hand</CardDescription>
           </div>
           <div className="flex gap-2">
             <AlertDialog>
@@ -129,7 +160,7 @@ export default function GameBoard({ initialPlayers, onRestartGame }: GameBoardPr
       </Card>
 
        {gamePhase === 'game-over' && winner && (
-        <Card className="bg-secondary text-secondary-foreground text-center p-6">
+        <Card className="bg-secondary/80 backdrop-blur-sm text-secondary-foreground text-center p-6 border-accent">
             <CardHeader>
                 <div className="flex justify-center items-center gap-4">
                     <Award className="w-12 h-12 text-accent" />
@@ -145,21 +176,10 @@ export default function GameBoard({ initialPlayers, onRestartGame }: GameBoardPr
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {players.map((player) => (
-            <PlayerCard
-              key={player.id}
-              player={player}
-              allPlayers={players}
-              currentRound={currentRound}
-              startingCardCount={STARTING_CARD_COUNT}
-              gamePhase={gamePhase}
-              onBidChange={handleBidChange}
-              onTricksChange={handleTricksChange}
-            />
-          ))}
+        <div className="md:col-span-3">
+          {renderPlayerCards()}
         </div>
-        <div className="md:col-span-1">
+        <div className="md:col-span-3">
           <GameHistory players={sortedPlayersByScore} currentRound={currentRound} totalRounds={STARTING_CARD_COUNT} />
         </div>
       </div>

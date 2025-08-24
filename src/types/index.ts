@@ -7,6 +7,7 @@ export interface Player {
   currentTricks: number | null;
   streak: number;
   isBidSuccessful: boolean | null;
+  avatarColor: string;
 }
 
 export interface BidSuggestion {

@@ -13,7 +13,7 @@ interface GameSetupProps {
 }
 
 export default function GameSetup({ onStartGame }: GameSetupProps) {
-  const [playerNames, setPlayerNames] = useState<string[]>(["Player 1", "Player 2"]);
+  const [playerNames, setPlayerNames] = useState<string[]>(["Player 1", "Player 2", "Player 3"]);
   const { toast } = useToast();
 
   const handleAddPlayer = () => {
@@ -70,7 +70,7 @@ export default function GameSetup({ onStartGame }: GameSetupProps) {
   };
 
   return (
-    <Card className="max-w-2xl mx-auto">
+    <Card className="max-w-2xl mx-auto bg-card/80 backdrop-blur-sm">
       <CardHeader>
         <CardTitle>Game Setup</CardTitle>
         <CardDescription>Add players to start a new game of Trickster. (2-8 players)</CardDescription>

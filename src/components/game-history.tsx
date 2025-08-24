@@ -12,6 +12,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion"
+import { Avatar, AvatarFallback } from './ui/avatar';
 
 interface GameHistoryProps {
   players: Player[];
@@ -26,14 +27,14 @@ export default function GameHistory({ players, currentRound, totalRounds }: Game
 
     const successful = history.bid === history.tricks;
     return (
-      <div className={cn("text-center", successful ? "text-green-600" : "text-red-600")}>
+      <div className={cn("text-center", successful ? "text-green-500" : "text-red-500")}>
          {history.bid} / {history.tricks}
       </div>
     );
   };
   
   return (
-    <Card>
+    <Card className="bg-card/80 backdrop-blur-sm">
       <CardHeader>
         <CardTitle>Scoreboard</CardTitle>
         <CardDescription>Live game scores and history</CardDescription>
@@ -53,6 +54,11 @@ export default function GameHistory({ players, currentRound, totalRounds }: Game
                 <TableCell className="font-medium">{index + 1}</TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
+                    <Avatar className="h-6 w-6">
+                        <AvatarFallback style={{backgroundColor: player.avatarColor, fontSize: '0.75rem'}}>
+                            {player.name.charAt(0)}
+                        </AvatarFallback>
+                    </Avatar>
                     {player.name}
                     {player.streak >= 3 && (
                       <Badge variant="destructive" className="flex items-center gap-1 bg-accent text-accent-foreground">

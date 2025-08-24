@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from './ui/badge';
 import NumberSelector from './number-selector';
+import { Avatar, AvatarFallback } from './ui/avatar';
 
 interface PlayerCardProps {
   player: Player;
@@ -59,26 +60,37 @@ export default function PlayerCard({
   };
 
   const cardStateClass = cn({
-    'border-green-500 border-2': player.isBidSuccessful === true,
-    'border-red-500 border-2': player.isBidSuccessful === false,
+    'border-green-500/50 border-2': player.isBidSuccessful === true,
+    'border-red-500/50 border-2': player.isBidSuccessful === false,
   });
 
   const cardsThisRound = startingCardCount - currentRound + 1;
 
   return (
-    <Card className={cn("flex flex-col", cardStateClass)}>
+    <Card className={cn("flex flex-col bg-card/80 backdrop-blur-sm transition-all", cardStateClass)}>
       <CardHeader>
-        <CardTitle className="flex justify-between items-center">
-          <span>{player.name}</span>
+        <CardTitle className="flex justify-between items-start">
+            <div className="flex items-center gap-3">
+                 <Avatar>
+                    <AvatarFallback style={{backgroundColor: player.avatarColor}}>
+                        {player.name.charAt(0)}
+                    </AvatarFallback>
+                </Avatar>
+                <div>
+                    <span>{player.name}</span>
+                     <CardDescription>
+                      <span className="font-code text-2xl font-bold">{player.totalScore} pts</span>
+                    </CardDescription>
+                </div>
+            </div>
+          
           {player.streak >= 3 && (
             <Badge variant="destructive" className="flex items-center gap-1 bg-accent text-accent-foreground">
               <Flame className="h-4 w-4" /> {player.streak}
             </Badge>
           )}
         </CardTitle>
-        <CardDescription>
-          <span className="font-code text-2xl font-bold">{player.totalScore} pts</span>
-        </CardDescription>
+       
       </CardHeader>
       <CardContent className="flex-grow space-y-4">
         <div className="space-y-2">

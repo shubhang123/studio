@@ -4,7 +4,6 @@ import { useState } from 'react';
 import type { Player } from '@/types';
 import GameSetup from '@/components/game-setup';
 import GameBoard from '@/components/game-board';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DiamondIcon } from '@/components/icons';
 
 type GamePhase = 'setup' | 'playing' | 'finished';
@@ -16,7 +15,7 @@ export default function Home() {
 
   const startGame = (playerNames: string[]) => {
     setPlayers(
-      playerNames.map((name) => ({
+      playerNames.map((name, index) => ({
         id: crypto.randomUUID(),
         name,
         totalScore: 0,
@@ -25,6 +24,7 @@ export default function Home() {
         currentTricks: null,
         streak: 0,
         isBidSuccessful: null,
+        avatarColor: `hsl(${index * (360 / playerNames.length)}, 70%, 50%)`
       }))
     );
     setGamePhase('playing');
@@ -48,8 +48,8 @@ export default function Home() {
   };
 
   return (
-    <main className="container mx-auto p-4 md:p-8 min-h-screen flex flex-col items-center bg-muted/40">
-      <header className="w-full max-w-7xl flex items-center justify-center mb-8">
+    <div className="container mx-auto p-4 md:p-8 min-h-screen flex flex-col items-center">
+      <header className="w-full max-w-7xl flex items-center justify-center mb-8 pt-8">
         <DiamondIcon className="h-10 w-10 text-primary" />
         <h1 className="text-4xl md:text-5xl font-headline font-bold ml-4">
           Trickster
@@ -58,6 +58,6 @@ export default function Home() {
       <div className="w-full max-w-7xl">
         {renderGamePhase()}
       </div>
-    </main>
+    </div>
   );
 }
