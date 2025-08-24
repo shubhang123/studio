@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef } from 'react';
+import * as React from 'react';
+import { useEffect } from 'react';
 import {
   Carousel,
   CarouselContent,
