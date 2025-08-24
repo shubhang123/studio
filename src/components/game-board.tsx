@@ -10,6 +10,7 @@ import { calculateScores, checkForPerfectGameBonus } from '@/lib/game-logic';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from './ui/alert-dialog';
 import { Award, RotateCcw, Swords, Hand, Info } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
 interface GameBoardProps {
   initialPlayers: Player[];
