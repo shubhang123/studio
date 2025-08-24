@@ -4,21 +4,21 @@ import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, si
 import { getFirestore, doc, setDoc } from 'firebase/firestore';
 
 const firebaseConfig: FirebaseOptions = {
-  apiKey: "AIzaSyDuYuO-5f7ERUdmnAdbLNC4ejWicxl_1u8",
-  authDomain: "trickster-mma5y.firebaseapp.com",
-  projectId: "trickster-mma5y",
-  storageBucket: "trickster-mma5y.appspot.com",
-  messagingSenderId: "802806168678",
-  appId: "1:802806168678:web:11a77847f485cc03cf81a7"
-};
+    apiKey: "AIzaSyDuYuO-5f7ERUdmnAdbLNC4ejWicxl_1u8",
+    authDomain: "trickster-mma5y.firebaseapp.com",
+    projectId: "trickster-mma5y",
+    storageBucket: "trickster-mma5y.appspot.com",
+    messagingSenderId: "802806168678",
+    appId: "1:802806168678:web:11a77847f485cc03cf81a7"
+  };
 
 // Initialize Firebase
-const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 
 // Authentication functions
-export const signUp = async (email, password) => {
+export const signUp = async (email, password, name, age) => {
   const userCredential = await createUserWithEmailAndPassword(auth, email, password);
   const user = userCredential.user;
 
@@ -26,7 +26,8 @@ export const signUp = async (email, password) => {
   await setDoc(doc(db, "users", user.uid), {
     uid: user.uid,
     email: user.email,
-    name: user.email?.split('@')[0] || 'New User', // Default name from email
+    name: name,
+    age: age,
   });
   
   return userCredential;
