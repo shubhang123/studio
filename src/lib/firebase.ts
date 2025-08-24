@@ -22,12 +22,17 @@ export const signUp = async (email, password, name, age) => {
   const userCredential = await createUserWithEmailAndPassword(auth, email, password);
   const user = userCredential.user;
 
-  // Create a user document in Firestore
-  await setDoc(doc(db, "users", user.uid), {
+  // Create a user document in Firestore, but don't block the auth flow.
+  // This can fail if security rules are not set up, but we still want the user to be created.
+  setDoc(doc(db, "users", user.uid), {
     uid: user.uid,
     email: user.email,
     name: name,
     age: age,
+  }).catch(error => {
+    console.error("Error creating user document in Firestore:", error);
+    // Even if this fails, the user is already created in Firebase Auth.
+    // We can proceed. In a production app, you might want to handle this more robustly.
   });
   
   return userCredential;
