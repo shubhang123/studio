@@ -44,17 +44,17 @@ export function CarouselSelector({ value, onChange, min, max, disabled }: Carous
     // Set initial position
     if (value !== null && numbers.includes(value)) {
       api.scrollTo(numbers.indexOf(value), true);
-    } else if (api.selectedScrollSnap() !== 0) {
-       api.scrollTo(0, true);
     } else {
-      // If no value, ensure the first item is selected visually
+      // If no value, set to the first item (0)
+      api.scrollTo(0, true);
       onChange(numbers[0]);
     }
 
     return () => {
       api.off('select', handleSelect);
     };
-  }, [api, value, numbers, onChange]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [api]);
   
   return (
     <Carousel

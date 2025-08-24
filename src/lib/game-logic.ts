@@ -11,7 +11,8 @@ export const calculateScores = (players: Player[], round: number): Player[] => {
     if (bid !== null && tricks !== null) {
       if (bid === tricks) {
         bidSuccessful = true;
-        roundScore = (bid + 1) * 10 + bid;
+        // Corrected scoring formula: 10 points for a correct bid, plus the number of tricks.
+        roundScore = 10 + tricks;
         newStreak++;
 
         // Add streak bonuses
@@ -43,7 +44,7 @@ export const calculateScores = (players: Player[], round: number): Player[] => {
 export const checkForPerfectGameBonus = (players: Player[]): Player[] => {
     return players.map(player => {
         const allBidsSuccessful = player.bidHistory.every(h => h.bid === h.tricks);
-        if (allBidsSuccessful) {
+        if (allBidsSuccessful && player.bidHistory.length > 0) { // Ensure there's history to check
             return {
                 ...player,
                 totalScore: player.totalScore + 50,
