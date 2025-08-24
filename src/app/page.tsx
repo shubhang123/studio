@@ -11,9 +11,11 @@ type GamePhase = 'setup' | 'playing' | 'finished';
 export default function Home() {
   const [gamePhase, setGamePhase] = useState<GamePhase>('setup');
   const [players, setPlayers] = useState<Player[]>([]);
+  const [startingCardCount, setStartingCardCount] = useState(13);
   const [gameKey, setGameKey] = useState(Date.now()); // Used to reset the game
 
-  const startGame = (playerNames: string[]) => {
+  const startGame = (playerNames: string[], cards: number) => {
+    setStartingCardCount(cards);
     setPlayers(
       playerNames.map((name, index) => ({
         id: crypto.randomUUID(),
@@ -41,7 +43,7 @@ export default function Home() {
       case 'setup':
         return <GameSetup onStartGame={startGame} />;
       case 'playing':
-        return <GameBoard key={gameKey} initialPlayers={players} onRestartGame={restartGame} />;
+        return <GameBoard key={gameKey} initialPlayers={players} startingCardCount={startingCardCount} onRestartGame={restartGame} />;
       default:
         return <GameSetup onStartGame={startGame} />;
     }

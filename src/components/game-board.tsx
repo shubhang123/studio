@@ -8,18 +8,18 @@ import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
 import { calculateScores, checkForPerfectGameBonus } from '@/lib/game-logic';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from './ui/alert-dialog';
-import { Award, RotateCcw, Swords, Hand } from 'lucide-react';
+import { Award, RotateCcw, Swords, Hand, Info } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface GameBoardProps {
   initialPlayers: Player[];
+  startingCardCount: number;
   onRestartGame: () => void;
 }
 
 type GamePhase = 'bidding' | 'scoring' | 'round-end' | 'game-over';
-const STARTING_CARD_COUNT = 13;
 
-export default function GameBoard({ initialPlayers, onRestartGame }: GameBoardProps) {
+export default function GameBoard({ initialPlayers, startingCardCount, onRestartGame }: GameBoardProps) {
   const [players, setPlayers] = useState<Player[]>(initialPlayers);
   const [currentRound, setCurrentRound] = useState(1);
   const [gamePhase, setGamePhase] = useState<GamePhase>('bidding');
@@ -36,10 +36,11 @@ export default function GameBoard({ initialPlayers, onRestartGame }: GameBoardPr
   const allBidsIn = useMemo(() => players.every(p => p.currentBid !== null), [players]);
   const allTricksIn = useMemo(() => players.every(p => p.currentTricks !== null), [players]);
   
-  const cardsThisRound = STARTING_CARD_COUNT - currentRound + 1;
+  const cardsThisRound = startingCardCount - currentRound + 1;
+  const totalBids = useMemo(() => players.reduce((acc, player) => acc + (player.currentBid ?? 0), 0), [players]);
+
 
   const handleStartScoring = () => {
-    const totalBids = players.reduce((acc, player) => acc + (player.currentBid ?? 0), 0);
     if (totalBids === cardsThisRound) {
         toast({
             title: "Invalid Bids",
@@ -68,7 +69,7 @@ export default function GameBoard({ initialPlayers, onRestartGame }: GameBoardPr
   };
 
   const handleNextRound = () => {
-    if (currentRound === STARTING_CARD_COUNT) {
+    if (currentRound === startingCardCount) {
         let finalPlayers = checkForPerfectGameBonus(players);
         setPlayers(finalPlayers);
         setGamePhase('game-over');
@@ -104,7 +105,7 @@ export default function GameBoard({ initialPlayers, onRestartGame }: GameBoardPr
               player={player}
               allPlayers={players}
               currentRound={currentRound}
-              startingCardCount={STARTING_CARD_COUNT}
+              startingCardCount={startingCardCount}
               gamePhase={gamePhase}
               onBidChange={handleBidChange}
               onTricksChange={handleTricksChange}
@@ -116,45 +117,62 @@ export default function GameBoard({ initialPlayers, onRestartGame }: GameBoardPr
   return (
     <div className="space-y-6">
       <Card className="bg-card/80 backdrop-blur-sm">
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div>
             <CardTitle className="flex items-center">{renderPhaseTitle()}</CardTitle>
-            <CardDescription>Round {currentRound} / {STARTING_CARD_COUNT} &middot; {cardsThisRound} cards per hand</CardDescription>
+            <CardDescription>Round {currentRound} / {startingCardCount}</CardDescription>
           </div>
-          <div className="flex gap-2">
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="outline"><RotateCcw />Restart Game</Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This will end the current game and return to the setup screen. All progress will be lost.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={onRestartGame}>Restart</AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+          <div className="flex flex-col md:flex-row items-start md:items-center gap-4 w-full md:w-auto">
+             <div className="flex items-center gap-4 bg-secondary/50 p-2 rounded-md">
+                <div className="text-center">
+                    <div className="text-xs text-muted-foreground">CARDS</div>
+                    <div className="text-2xl font-bold font-code">{cardsThisRound}</div>
+                </div>
+                {gamePhase === 'bidding' && (
+                    <>
+                        <div className="h-8 w-px bg-border"></div>
+                        <div className="text-center">
+                            <div className="text-xs text-muted-foreground">TOTAL BIDS</div>
+                            <div className={cn("text-2xl font-bold font-code", totalBids === cardsThisRound && "text-destructive")}>{totalBids}</div>
+                        </div>
+                    </>
+                )}
+            </div>
+            <div className="flex gap-2 ml-auto">
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="outline"><RotateCcw />Restart Game</Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This will end the current game and return to the setup screen. All progress will be lost.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={onRestartGame}>Restart</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
 
-            {gamePhase === 'bidding' && (
-              <Button onClick={handleStartScoring} disabled={!allBidsIn}>
-                Start Scoring
-              </Button>
-            )}
-            {gamePhase === 'scoring' && (
-              <Button onClick={handleScoreRound} disabled={!allTricksIn}>
-                Score Round
-              </Button>
-            )}
-            {gamePhase === 'round-end' && (
-              <Button onClick={handleNextRound}>
-                Next Round
-              </Button>
-            )}
+                {gamePhase === 'bidding' && (
+                  <Button onClick={handleStartScoring} disabled={!allBidsIn}>
+                    Start Scoring
+                  </Button>
+                )}
+                {gamePhase === 'scoring' && (
+                  <Button onClick={handleScoreRound} disabled={!allTricksIn}>
+                    Score Round
+                  </Button>
+                )}
+                {gamePhase === 'round-end' && (
+                  <Button onClick={handleNextRound}>
+                    Next Round
+                  </Button>
+                )}
+              </div>
           </div>
         </CardHeader>
       </Card>
@@ -180,7 +198,7 @@ export default function GameBoard({ initialPlayers, onRestartGame }: GameBoardPr
           {renderPlayerCards()}
         </div>
         <div className="md:col-span-3">
-          <GameHistory players={sortedPlayersByScore} currentRound={currentRound} totalRounds={STARTING_CARD_COUNT} />
+          <GameHistory players={sortedPlayersByScore} currentRound={currentRound} totalRounds={startingCardCount} />
         </div>
       </div>
     </div>

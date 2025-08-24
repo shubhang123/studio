@@ -7,13 +7,15 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Label } from "@/components/ui/label";
 import { UserPlus, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Slider } from "@/components/ui/slider";
 
 interface GameSetupProps {
-  onStartGame: (playerNames: string[]) => void;
+  onStartGame: (playerNames: string[], startingCardCount: number) => void;
 }
 
 export default function GameSetup({ onStartGame }: GameSetupProps) {
   const [playerNames, setPlayerNames] = useState<string[]>(["Player 1", "Player 2", "Player 3"]);
+  const [startingCardCount, setStartingCardCount] = useState(13);
   const { toast } = useToast();
 
   const handleAddPlayer = () => {
@@ -66,42 +68,57 @@ export default function GameSetup({ onStartGame }: GameSetupProps) {
       });
       return;
     }
-    onStartGame(validPlayerNames);
+    onStartGame(validPlayerNames, startingCardCount);
   };
 
   return (
     <Card className="max-w-2xl mx-auto bg-card/80 backdrop-blur-sm">
       <CardHeader>
         <CardTitle>Game Setup</CardTitle>
-        <CardDescription>Add players to start a new game of Trickster. (2-8 players)</CardDescription>
+        <CardDescription>Configure players and game rules to start a new game of Trickster.</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <Label>Players</Label>
-          {playerNames.map((name, index) => (
-            <div key={index} className="flex items-center gap-2">
-              <Input
-                type="text"
-                value={name}
-                onChange={(e) => handlePlayerNameChange(index, e.target.value)}
-                placeholder={`Player ${index + 1}`}
-              />
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => handleRemovePlayer(index)}
-                disabled={playerNames.length <= 2}
-                aria-label={`Remove Player ${index + 1}`}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-          ))}
+      <CardContent className="space-y-6">
+        <div className="space-y-4">
+          <Label>Players (2-8)</Label>
+          <div className="space-y-2">
+            {playerNames.map((name, index) => (
+              <div key={index} className="flex items-center gap-2">
+                <Input
+                  type="text"
+                  value={name}
+                  onChange={(e) => handlePlayerNameChange(index, e.target.value)}
+                  placeholder={`Player ${index + 1}`}
+                />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleRemovePlayer(index)}
+                  disabled={playerNames.length <= 2}
+                  aria-label={`Remove Player ${index + 1}`}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+          </div>
+          <Button variant="outline" onClick={handleAddPlayer} disabled={playerNames.length >= 8} className="w-full">
+            <UserPlus className="mr-2" />
+            Add Player
+          </Button>
         </div>
-        <Button variant="outline" onClick={handleAddPlayer} disabled={playerNames.length >= 8} className="w-full">
-          <UserPlus className="mr-2" />
-          Add Player
-        </Button>
+        <div className="space-y-4">
+            <div className="flex justify-between items-center">
+                 <Label>Starting Cards</Label>
+                 <span className="font-code text-lg font-bold">{startingCardCount}</span>
+            </div>
+            <Slider
+                value={[startingCardCount]}
+                onValueChange={(value) => setStartingCardCount(value[0])}
+                min={7}
+                max={15}
+                step={1}
+            />
+        </div>
       </CardContent>
       <CardFooter>
         <Button onClick={handleStartGame} className="w-full">
