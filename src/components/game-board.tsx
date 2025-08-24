@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useMemo, useTransition } from 'react';
-import type { Player } from '@/types';
+import { useMemo } from 'react';
+import type { GameState, Player } from '@/types';
 import GameHistory from './game-history';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
@@ -12,28 +12,32 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import BiddingView from './bidding-view';
 import ScoringView from './scoring-view';
+import { useGameStore } from '@/hooks/use-game-store';
 
 interface GameBoardProps {
-  initialPlayers: Player[];
-  startingCardCount: number;
+  game: GameState;
   onRestartGame: () => void;
 }
 
-type GamePhase = 'bidding' | 'scoring' | 'round-end' | 'game-over';
+export default function GameBoard({ game, onRestartGame }: GameBoardProps) {
+  const { 
+    updateBid, 
+    updateTricks,
+    setGamePhase,
+    scoreRound,
+    nextRound,
+    endGame
+   } = useGameStore();
 
-export default function GameBoard({ initialPlayers, startingCardCount, onRestartGame }: GameBoardProps) {
-  const [players, setPlayers] = useState<Player[]>(initialPlayers);
-  const [currentRound, setCurrentRound] = useState(1);
-  const [gamePhase, setGamePhase] = useState<GamePhase>('bidding');
   const { toast } = useToast();
+  const { players, currentRound, startingCardCount, gamePhase } = game;
 
   const handleBidChange = (playerId: string, bid: number | null) => {
-    setPlayers(players.map(p => (p.id === playerId ? { ...p, currentBid: bid } : p)));
+    updateBid(playerId, bid);
   };
 
-
   const handleTricksChange = (playerId: string, tricks: number | null) => {
-    setPlayers(players.map(p => (p.id === playerId ? { ...p, currentTricks: tricks } : p)));
+    updateTricks(playerId, tricks);
   };
 
   const allBidsIn = useMemo(() => players.every(p => p.currentBid !== null), [players]);
@@ -65,29 +69,15 @@ export default function GameBoard({ initialPlayers, startingCardCount, onRestart
         });
         return;
     }
-
-    const updatedPlayers = calculateScores(players, currentRound);
-    setPlayers(updatedPlayers);
+    scoreRound();
     setGamePhase('round-end');
   };
 
   const handleNextRound = () => {
     if (currentRound === startingCardCount) {
-        let finalPlayers = checkForPerfectGameBonus(players);
-        setPlayers(finalPlayers);
-        setGamePhase('game-over');
+        endGame();
     } else {
-        const nextRound = currentRound + 1;
-        const dealerIndex = (currentRound) % players.length;
-        setPlayers(players.map((p, index) => ({ 
-          ...p, 
-          currentBid: null, 
-          currentTricks: null, 
-          isBidSuccessful: null,
-          isDealer: index === dealerIndex,
-        })));
-        setCurrentRound(nextRound);
-        setGamePhase('bidding');
+        nextRound();
     }
   };
   
@@ -114,7 +104,6 @@ export default function GameBoard({ initialPlayers, startingCardCount, onRestart
         return (
           <BiddingView
             players={players}
-            allPlayers={players}
             currentRound={currentRound}
             startingCardCount={startingCardCount}
             onBidChange={handleBidChange}
@@ -124,7 +113,6 @@ export default function GameBoard({ initialPlayers, startingCardCount, onRestart
         return (
           <ScoringView
             players={players}
-            allPlayers={players}
             currentRound={currentRound}
             startingCardCount={startingCardCount}
             onTricksChange={handleTricksChange}
@@ -132,8 +120,6 @@ export default function GameBoard({ initialPlayers, startingCardCount, onRestart
         );
       case 'round-end':
       case 'game-over':
-        // In a real scenario, you might have a dedicated round-end/game-over view
-        // For now, we'll show the history which serves as a summary
         return <GameHistory players={sortedPlayersByScore} currentRound={currentRound} totalRounds={startingCardCount} />;
       default:
         return null;
@@ -197,6 +183,11 @@ export default function GameBoard({ initialPlayers, startingCardCount, onRestart
                 {gamePhase === 'round-end' && (
                   <Button onClick={handleNextRound}>
                     Next Round
+                  </Button>
+                )}
+                 {gamePhase === 'game-over' && (
+                  <Button onClick={onRestartGame}>
+                    New Game
                   </Button>
                 )}
               </div>

@@ -1,14 +1,26 @@
-export interface Player {
-  id: string;
+export interface PlayerSetup {
   name: string;
+  avatarColor: string;
+}
+
+export interface Player extends PlayerSetup {
+  id: string;
   totalScore: number;
   bidHistory: { round: number; bid: number; tricks: number; score: number }[];
   currentBid: number | null;
   currentTricks: number | null;
   streak: number;
   isBidSuccessful: boolean | null;
-  avatarColor: string;
   isDealer: boolean;
+}
+
+export interface GameState {
+  id: string;
+  players: Player[];
+  currentRound: number;
+  startingCardCount: number;
+  gamePhase: 'setup' | 'bidding' | 'scoring' | 'round-end' | 'game-over';
+  timestamp: number;
 }
 
 export interface BidSuggestion {
@@ -18,7 +30,7 @@ export interface BidSuggestion {
 
 export interface NumberSelectorProps {
   value: number | null;
-  onChange: (value: number | null) => void;
+  onValueChange: (value: number | null) => void;
   min: number;
   max: number;
   disabled?: boolean;

@@ -5,7 +5,6 @@ import PlayerCard from './player-card';
 
 interface BiddingViewProps {
   players: Player[];
-  allPlayers: Player[];
   currentRound: number;
   startingCardCount: number;
   onBidChange: (playerId: string, bid: number | null) => void;
@@ -13,7 +12,6 @@ interface BiddingViewProps {
 
 export default function BiddingView({
   players,
-  allPlayers,
   currentRound,
   startingCardCount,
   onBidChange,
@@ -24,7 +22,7 @@ export default function BiddingView({
         <PlayerCard
           key={player.id}
           player={player}
-          allPlayers={allPlayers}
+          allPlayers={players}
           currentRound={currentRound}
           startingCardCount={startingCardCount}
           gamePhase="bidding"

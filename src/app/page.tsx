@@ -1,54 +1,43 @@
 "use client";
 
-import { useState } from 'react';
-import type { Player } from '@/types';
-import GameSetup from '@/components/game-setup';
-import GameBoard from '@/components/game-board';
-import { DiamondIcon } from '@/components/icons';
-
-type GamePhase = 'setup' | 'playing' | 'finished';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
+import { useGameStore } from "@/hooks/use-game-store";
+import { BarChart, Gamepad2, History, Play, Users } from "lucide-react";
+import { DiamondIcon } from "@/components/icons";
 
 export default function Home() {
-  const [gamePhase, setGamePhase] = useState<GamePhase>('setup');
-  const [players, setPlayers] = useState<Player[]>([]);
-  const [startingCardCount, setStartingCardCount] = useState(13);
-  const [gameKey, setGameKey] = useState(Date.now()); // Used to reset the game
+  const router = useRouter();
+  const {
+    gameHistory,
+    players,
+    startNewGame,
+    currentGame,
+  } = useGameStore();
 
-  const startGame = (playerNames: string[], cards: number) => {
-    setStartingCardCount(cards);
-    setPlayers(
-      playerNames.map((name, index) => ({
-        id: crypto.randomUUID(),
-        name,
-        totalScore: 0,
-        bidHistory: [],
-        currentBid: null,
-        currentTricks: null,
-        streak: 0,
-        isBidSuccessful: null,
-        avatarColor: `hsl(${index * (360 / playerNames.length)}, 70%, 50%)`,
-        isDealer: index === 0,
-      }))
-    );
-    setGamePhase('playing');
-  };
+  const totalGamesPlayed = gameHistory.length;
+  const uniquePlayers = new Set(
+    gameHistory.flatMap((game) => game.players.map((p) => p.name))
+  );
 
-  const restartGame = () => {
-    setGamePhase('setup');
-    setPlayers([]);
-    setGameKey(Date.now());
-  };
+  const allBids = gameHistory.flatMap((game) =>
+    game.players.flatMap((p) => p.bidHistory)
+  );
+  const successfulBids = allBids.filter((h) => h.bid === h.tricks).length;
+  const bidSuccessRate =
+    allBids.length > 0
+      ? Math.round((successfulBids / allBids.length) * 100)
+      : 0;
 
-  const renderGamePhase = () => {
-    switch (gamePhase) {
-      case 'setup':
-        return <GameSetup onStartGame={startGame} />;
-      case 'playing':
-        return <GameBoard key={gameKey} initialPlayers={players} startingCardCount={startingCardCount} onRestartGame={restartGame} />;
-      default:
-        return <GameSetup onStartGame={startGame} />;
-    }
+  const handleStartNewGame = () => {
+    startNewGame();
+    router.push("/setup");
   };
+  
+  const handleResumeGame = () => {
+    router.push('/game');
+  }
 
   return (
     <div className="container mx-auto p-4 md:p-8 min-h-screen flex flex-col items-center">
@@ -58,8 +47,65 @@ export default function Home() {
           Trickster
         </h1>
       </header>
-      <div className="w-full max-w-7xl">
-        {renderGamePhase()}
+      <div className="w-full max-w-4xl space-y-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card className="bg-card/80 backdrop-blur-sm">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                Total Games Played
+              </CardTitle>
+              <Gamepad2 className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{totalGamesPlayed}</div>
+            </CardContent>
+          </Card>
+          <Card className="bg-card/80 backdrop-blur-sm">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                Unique Players
+              </CardTitle>
+              <Users className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{uniquePlayers.size}</div>
+            </CardContent>
+          </Card>
+          <Card className="bg-card/80 backdrop-blur-sm">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                Bid Success Rate
+              </CardTitle>
+              <BarChart className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{bidSuccessRate}%</div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="space-y-4 text-center">
+           {currentGame && currentGame.players.length > 0 ? (
+            <Card className="bg-secondary/80 backdrop-blur-sm text-center p-6 border-accent">
+               <CardHeader>
+                  <CardTitle>Game in Progress</CardTitle>
+                  <p className="text-muted-foreground">
+                    Round {currentGame.currentRound} with {currentGame.players.map(p => p.name).join(', ')}
+                  </p>
+               </CardHeader>
+               <CardContent>
+                  <Button size="lg" onClick={handleResumeGame}>
+                      <Play className="mr-2" /> Resume Game
+                  </Button>
+               </CardContent>
+            </Card>
+          ) : null}
+
+          <Button size="lg" onClick={handleStartNewGame} className={currentGame ? 'w-full' : 'w-1/2'}>
+            <Play className="mr-2" /> Start New Game
+          </Button>
+
+        </div>
       </div>
     </div>
   );

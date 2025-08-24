@@ -8,19 +8,31 @@ import { Label } from "@/components/ui/label";
 import { UserPlus, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Slider } from "@/components/ui/slider";
+import type { PlayerSetup } from "@/types";
+import { Avatar, AvatarFallback } from "./ui/avatar";
 
 interface GameSetupProps {
-  onStartGame: (playerNames: string[], startingCardCount: number) => void;
+  onStartGame: (players: PlayerSetup[], startingCardCount: number) => void;
 }
 
+const AVATAR_COLORS = [
+    '#FF5733', '#33FF57', '#3357FF', '#FF33A1', 
+    '#A133FF', '#33FFA1', '#FFC300', '#FF3333'
+];
+
 export default function GameSetup({ onStartGame }: GameSetupProps) {
-  const [playerNames, setPlayerNames] = useState<string[]>(["Player 1", "Player 2", "Player 3"]);
+  const [players, setPlayers] = useState<PlayerSetup[]>([
+    { name: "Player 1", avatarColor: AVATAR_COLORS[0] }, 
+    { name: "Player 2", avatarColor: AVATAR_COLORS[1] }, 
+    { name: "Player 3", avatarColor: AVATAR_COLORS[2] }
+]);
   const [startingCardCount, setStartingCardCount] = useState(13);
   const { toast } = useToast();
 
   const handleAddPlayer = () => {
-    if (playerNames.length < 8) {
-      setPlayerNames([...playerNames, `Player ${playerNames.length + 1}`]);
+    if (players.length < 8) {
+        const nextColor = AVATAR_COLORS[players.length % AVATAR_COLORS.length];
+        setPlayers([...players, { name: `Player ${players.length + 1}`, avatarColor: nextColor }]);
     } else {
       toast({
         title: "Maximum Players",
@@ -31,10 +43,10 @@ export default function GameSetup({ onStartGame }: GameSetupProps) {
   };
 
   const handleRemovePlayer = (index: number) => {
-    if (playerNames.length > 2) {
-      const newPlayerNames = [...playerNames];
-      newPlayerNames.splice(index, 1);
-      setPlayerNames(newPlayerNames);
+    if (players.length > 2) {
+      const newPlayers = [...players];
+      newPlayers.splice(index, 1);
+      setPlayers(newPlayers);
     } else {
        toast({
         title: "Minimum Players",
@@ -45,14 +57,14 @@ export default function GameSetup({ onStartGame }: GameSetupProps) {
   };
 
   const handlePlayerNameChange = (index: number, name: string) => {
-    const newPlayerNames = [...playerNames];
-    newPlayerNames[index] = name;
-    setPlayerNames(newPlayerNames);
+    const newPlayers = [...players];
+    newPlayers[index].name = name;
+    setPlayers(newPlayers);
   };
 
   const handleStartGame = () => {
-    const validPlayerNames = playerNames.filter((name) => name.trim() !== "");
-    if (validPlayerNames.length < 2) {
+    const validPlayers = players.filter((p) => p.name.trim() !== "");
+    if (validPlayers.length < 2) {
       toast({
         title: "Invalid Setup",
         description: "Please enter names for at least two players.",
@@ -60,7 +72,8 @@ export default function GameSetup({ onStartGame }: GameSetupProps) {
       });
       return;
     }
-    if (new Set(validPlayerNames).size !== validPlayerNames.length) {
+    const playerNames = validPlayers.map(p => p.name);
+    if (new Set(playerNames).size !== playerNames.length) {
       toast({
         title: "Duplicate Names",
         description: "Player names must be unique.",
@@ -68,7 +81,7 @@ export default function GameSetup({ onStartGame }: GameSetupProps) {
       });
       return;
     }
-    onStartGame(validPlayerNames, startingCardCount);
+    onStartGame(validPlayers, startingCardCount);
   };
 
   return (
@@ -81,11 +94,16 @@ export default function GameSetup({ onStartGame }: GameSetupProps) {
         <div className="space-y-4">
           <Label>Players (2-8)</Label>
           <div className="space-y-2">
-            {playerNames.map((name, index) => (
+            {players.map((player, index) => (
               <div key={index} className="flex items-center gap-2">
+                <Avatar className="h-8 w-8">
+                    <AvatarFallback style={{backgroundColor: player.avatarColor, color: '#fff'}}>
+                        {player.name.charAt(0)}
+                    </AvatarFallback>
+                </Avatar>
                 <Input
                   type="text"
-                  value={name}
+                  value={player.name}
                   onChange={(e) => handlePlayerNameChange(index, e.target.value)}
                   placeholder={`Player ${index + 1}`}
                 />
@@ -93,7 +111,7 @@ export default function GameSetup({ onStartGame }: GameSetupProps) {
                   variant="ghost"
                   size="icon"
                   onClick={() => handleRemovePlayer(index)}
-                  disabled={playerNames.length <= 2}
+                  disabled={players.length <= 2}
                   aria-label={`Remove Player ${index + 1}`}
                 >
                   <X className="h-4 w-4" />
@@ -101,7 +119,7 @@ export default function GameSetup({ onStartGame }: GameSetupProps) {
               </div>
             ))}
           </div>
-          <Button variant="outline" onClick={handleAddPlayer} disabled={playerNames.length >= 8} className="w-full">
+          <Button variant="outline" onClick={handleAddPlayer} disabled={players.length >= 8} className="w-full">
             <UserPlus className="mr-2" />
             Add Player
           </Button>

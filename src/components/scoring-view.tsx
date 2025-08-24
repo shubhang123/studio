@@ -5,7 +5,6 @@ import PlayerCard from './player-card';
 
 interface ScoringViewProps {
   players: Player[];
-  allPlayers: Player[];
   currentRound: number;
   startingCardCount: number;
   onTricksChange: (playerId: string, tricks: number | null) => void;
@@ -13,7 +12,6 @@ interface ScoringViewProps {
 
 export default function ScoringView({
   players,
-  allPlayers,
   currentRound,
   startingCardCount,
   onTricksChange,
@@ -24,7 +22,7 @@ export default function ScoringView({
         <PlayerCard
           key={player.id}
           player={player}
-          allPlayers={allPlayers}
+          allPlayers={players}
           currentRound={currentRound}
           startingCardCount={startingCardCount}
           gamePhase="scoring"
