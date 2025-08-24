@@ -1,20 +1,25 @@
+
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { useGameStore } from "@/hooks/use-game-store";
-import { BarChart, Gamepad2, History, Play, Users } from "lucide-react";
+import { BarChart, Gamepad2, Play, Users } from "lucide-react";
 import { DiamondIcon } from "@/components/icons";
+import { useAuth } from "@/hooks/use-auth";
+import { useEffect } from "react";
 
 export default function Home() {
   const router = useRouter();
-  const {
-    gameHistory,
-    players,
-    startNewGame,
-    currentGame,
-  } = useGameStore();
+  const { user, loading } = useAuth();
+  const { gameHistory, startNewGame, currentGame } = useGameStore();
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/auth');
+    }
+  }, [user, loading, router]);
 
   const totalGamesPlayed = gameHistory.length;
   const uniquePlayers = new Set(
@@ -37,6 +42,10 @@ export default function Home() {
   
   const handleResumeGame = () => {
     router.push('/game');
+  }
+
+  if (loading || !user) {
+    return null; // Or a loading spinner
   }
 
   return (

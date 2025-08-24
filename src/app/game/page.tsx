@@ -1,3 +1,4 @@
+
 "use client";
 
 import GameBoard from '@/components/game-board';
@@ -5,23 +6,27 @@ import { DiamondIcon } from '@/components/icons';
 import { useGameStore } from '@/hooks/use-game-store';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
+import { useAuth } from '@/hooks/use-auth';
 
 export default function GamePage() {
     const router = useRouter();
-    const { currentGame, endGame, restartGame } = useGameStore();
+    const { user, loading } = useAuth();
+    const { currentGame, restartGame } = useGameStore();
 
     useEffect(() => {
-        if (!currentGame || currentGame.players.length === 0) {
+        if (!loading && !user) {
+            router.push('/auth');
+        } else if (!loading && user && (!currentGame || currentGame.players.length === 0)) {
             router.push('/');
         }
-    }, [currentGame, router]);
+    }, [currentGame, router, user, loading]);
 
     const handleRestart = () => {
         restartGame();
         router.push('/setup');
     }
 
-    if (!currentGame || currentGame.players.length === 0) {
+    if (loading || !user || !currentGame || currentGame.players.length === 0) {
         // You can show a loading spinner here
         return null;
     }
