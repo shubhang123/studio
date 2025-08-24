@@ -44,3 +44,13 @@ export interface NumberSelectorProps {
   max: number;
   disabled?: boolean;
 }
+
+export interface LeaderboardPlayer {
+    uid: string;
+    name: string;
+    email: string;
+    gamesPlayed: number;
+    gamesWon: number;
+    totalPoints: number;
+    bidSuccessRate: number;
+}

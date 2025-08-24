@@ -3,8 +3,8 @@
 
 import { revalidatePath } from "next/cache";
 import { getBidSuggestion } from "@/ai/flows/smart-bidding-advisor";
-import type { Player, BidSuggestion } from "@/types";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import type { Player, BidSuggestion, LeaderboardPlayer } from "@/types";
+import { collection, getDocs, query, where, doc, getDoc, runTransaction, orderBy } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
 interface GetBidSuggestionParams {
@@ -68,5 +68,72 @@ export async function findUserByEmail(email: string): Promise<{ uid: string; nam
   } catch (error) {
     console.error("Error finding user by email:", error);
     return null;
+  }
+}
+
+export async function updateUserStats(players: Player[]) {
+  try {
+    const sortedPlayers = [...players].sort((a, b) => b.totalScore - a.totalScore);
+    const winner = sortedPlayers[0];
+
+    await runTransaction(db, async (transaction) => {
+      for (const player of players) {
+        const playerRef = doc(db, "leaderboard", player.uid);
+        const userRef = doc(db, "users", player.uid);
+
+        const [playerDoc, userDoc] = await Promise.all([
+            transaction.get(playerRef),
+            transaction.get(userRef)
+        ]);
+        
+        const userData = userDoc.data();
+        if (!userData) continue;
+
+        const isWinner = player.uid === winner.uid;
+        
+        if (!playerDoc.exists()) {
+          transaction.set(playerRef, {
+            name: userData.name,
+            email: userData.email,
+            gamesPlayed: 1,
+            gamesWon: isWinner ? 1 : 0,
+            totalPoints: player.totalScore,
+            bidSuccessRate: player.bidHistory.filter(h => h.bid === h.tricks).length / player.bidHistory.length,
+          });
+        } else {
+          const currentStats = playerDoc.data();
+          const totalSuccessfulBids = (currentStats.bidSuccessRate * currentStats.gamesPlayed * 10) + player.bidHistory.filter(h => h.bid === h.tricks).length; // Approximation
+          const totalBids = (currentStats.gamesPlayed * 10) + player.bidHistory.length;
+
+          transaction.update(playerRef, {
+            gamesPlayed: currentStats.gamesPlayed + 1,
+            gamesWon: currentStats.gamesWon + (isWinner ? 1 : 0),
+            totalPoints: currentStats.totalPoints + player.totalScore,
+            bidSuccessRate: totalBids > 0 ? totalSuccessfulBids / totalBids : 0,
+          });
+        }
+      }
+    });
+    revalidatePath('/leaderboard');
+  } catch (error) {
+    console.error("Error updating user stats:", error);
+  }
+}
+
+export async function getLeaderboard(): Promise<LeaderboardPlayer[]> {
+  try {
+    const leaderboardRef = collection(db, "leaderboard");
+    const q = query(leaderboardRef, orderBy("gamesWon", "desc"), orderBy("totalPoints", "desc"));
+    const querySnapshot = await getDocs(q);
+
+    const leaderboard: LeaderboardPlayer[] = [];
+    querySnapshot.forEach((doc) => {
+      leaderboard.push({ uid: doc.id, ...doc.data() } as LeaderboardPlayer);
+    });
+
+    return leaderboard;
+  } catch (error) {
+    console.error("Error fetching leaderboard:", error);
+    return [];
   }
 }

@@ -4,6 +4,7 @@ import type { Player, GameState, PlayerSetup, GameConfig } from '@/types';
 import { calculateScores, checkForPerfectGameBonus } from '@/lib/game-logic';
 import { doc, setDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { updateUserStats } from '@/app/actions';
 
 type GameStore = {
   currentGame: GameState | null;
@@ -131,7 +132,7 @@ export const useGameStore = create<GameStore>()((set, get) => ({
     get().startGame(playerSetups, startingCardCount, config);
   },
 
-  endGame: () => {
+  endGame: async () => {
     const state = get();
     if (!state.currentGame) return;
     
@@ -147,6 +148,9 @@ export const useGameStore = create<GameStore>()((set, get) => ({
         gamePhase: 'game-over' as const
     };
     
+    // Update global leaderboards
+    await updateUserStats(finalGameState.players);
+
     const newHistory = [...state.gameHistory, finalGameState];
     const newState = { currentGame: finalGameState, gameHistory: newHistory };
 

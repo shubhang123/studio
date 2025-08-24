@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { useGameStore } from "@/hooks/use-game-store";
-import { BarChart, Gamepad2, Play, Users } from "lucide-react";
+import { BarChart, Gamepad2, Play, Users, Trophy } from "lucide-react";
 import { DiamondIcon } from "@/components/icons";
 import { useAuth } from "@/hooks/use-auth";
 import { useEffect } from "react";
@@ -42,6 +42,10 @@ export default function Home() {
   
   const handleResumeGame = () => {
     router.push('/game');
+  }
+  
+  const handleViewLeaderboard = () => {
+    router.push('/leaderboard');
   }
 
   if (loading || !user) {
@@ -114,9 +118,14 @@ export default function Home() {
               </Button>
             </div>
           ) : (
-             <Button size="lg" onClick={handleStartNewGame} className="w-1/2">
-                <Play className="mr-2" /> Start New Game
-            </Button>
+             <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Button size="lg" onClick={handleStartNewGame} className="w-full sm:w-1/2">
+                    <Play className="mr-2" /> Start New Game
+                </Button>
+                <Button size="lg" onClick={handleViewLeaderboard} variant="secondary" className="w-full sm:w-1/2">
+                    <Trophy className="mr-2" /> View Leaderboard
+                </Button>
+            </div>
           )}
         </div>
       </div>
