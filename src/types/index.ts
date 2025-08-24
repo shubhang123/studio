@@ -8,6 +8,8 @@ export interface Player {
   streak: number;
   isBidSuccessful: boolean | null;
   avatarColor: string;
+  isDealer: boolean;
+  isTurn: boolean;
 }
 
 export interface BidSuggestion {

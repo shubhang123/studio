@@ -26,7 +26,9 @@ export default function Home() {
         currentTricks: null,
         streak: 0,
         isBidSuccessful: null,
-        avatarColor: `hsl(${index * (360 / playerNames.length)}, 70%, 50%)`
+        avatarColor: `hsl(${index * (360 / playerNames.length)}, 70%, 50%)`,
+        isDealer: index === 0,
+        isTurn: index === 1,
       }))
     );
     setGamePhase('playing');

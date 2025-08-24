@@ -2,15 +2,16 @@
 
 import { useState, useMemo } from 'react';
 import type { Player } from '@/types';
-import PlayerCard from './player-card';
 import GameHistory from './game-history';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
 import { calculateScores, checkForPerfectGameBonus } from '@/lib/game-logic';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from './ui/alert-dialog';
-import { Award, RotateCcw, Swords, Hand, Info } from 'lucide-react';
+import { Award, RotateCcw, Swords, Hand } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import BiddingView from './bidding-view';
+import ScoringView from './scoring-view';
 
 interface GameBoardProps {
   initialPlayers: Player[];
@@ -75,8 +76,18 @@ export default function GameBoard({ initialPlayers, startingCardCount, onRestart
         setPlayers(finalPlayers);
         setGamePhase('game-over');
     } else {
-        setPlayers(players.map(p => ({ ...p, currentBid: null, currentTricks: null, isBidSuccessful: null })));
-        setCurrentRound(currentRound + 1);
+        const nextRound = currentRound + 1;
+        const dealerIndex = (nextRound - 1) % players.length;
+        const turnIndex = (dealerIndex + 1) % players.length;
+        setPlayers(players.map((p, index) => ({ 
+          ...p, 
+          currentBid: null, 
+          currentTricks: null, 
+          isBidSuccessful: null,
+          isDealer: index === dealerIndex,
+          isTurn: index === turnIndex
+        })));
+        setCurrentRound(nextRound);
         setGamePhase('bidding');
     }
   };
@@ -89,7 +100,7 @@ export default function GameBoard({ initialPlayers, startingCardCount, onRestart
       case 'bidding':
         return <><Hand className="mr-2" /> Place Your Bids</>
       case 'scoring':
-        return <><Swords className="mr-2" /> Score The Round</>
+        return <><Swords className="mr-2" /> Record Tricks Taken</>
       case 'round-end':
       case 'game-over':
         return 'Round Over'
@@ -97,30 +108,46 @@ export default function GameBoard({ initialPlayers, startingCardCount, onRestart
         return ''
     }
   }
+  
+  const renderGameView = () => {
+    switch (gamePhase) {
+      case 'bidding':
+        return (
+          <BiddingView
+            players={players}
+            allPlayers={players}
+            currentRound={currentRound}
+            startingCardCount={startingCardCount}
+            onBidChange={handleBidChange}
+          />
+        );
+      case 'scoring':
+        return (
+          <ScoringView
+            players={players}
+            allPlayers={players}
+            currentRound={currentRound}
+            startingCardCount={startingCardCount}
+            onTricksChange={handleTricksChange}
+          />
+        );
+      case 'round-end':
+      case 'game-over':
+        // In a real scenario, you might have a dedicated round-end/game-over view
+        // For now, we'll show the history which serves as a summary
+        return <GameHistory players={sortedPlayersByScore} currentRound={currentRound} totalRounds={startingCardCount} />;
+      default:
+        return null;
+    }
+  };
 
-  const renderPlayerCards = () => (
-     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {players.map((player) => (
-            <PlayerCard
-              key={player.id}
-              player={player}
-              allPlayers={players}
-              currentRound={currentRound}
-              startingCardCount={startingCardCount}
-              gamePhase={gamePhase}
-              onBidChange={handleBidChange}
-              onTricksChange={handleTricksChange}
-            />
-          ))}
-    </div>
-  )
 
   return (
     <div className="space-y-6">
       <Card className="bg-card/80 backdrop-blur-sm">
         <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div>
-            <CardTitle className="flex items-center">{renderPhaseTitle()}</CardTitle>
+            <CardTitle className="flex items-center text-2xl">{renderPhaseTitle()}</CardTitle>
             <CardDescription>Round {currentRound} / {startingCardCount}</CardDescription>
           </div>
           <div className="flex flex-col md:flex-row items-start md:items-center gap-4 w-full md:w-auto">
@@ -142,7 +169,7 @@ export default function GameBoard({ initialPlayers, startingCardCount, onRestart
             <div className="flex gap-2 ml-auto">
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <Button variant="outline"><RotateCcw />Restart Game</Button>
+                    <Button variant="outline"><RotateCcw />Restart</Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>
@@ -160,7 +187,7 @@ export default function GameBoard({ initialPlayers, startingCardCount, onRestart
 
                 {gamePhase === 'bidding' && (
                   <Button onClick={handleStartScoring} disabled={!allBidsIn}>
-                    Start Scoring
+                    Record Tricks
                   </Button>
                 )}
                 {gamePhase === 'scoring' && (
@@ -196,7 +223,7 @@ export default function GameBoard({ initialPlayers, startingCardCount, onRestart
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="md:col-span-3">
-          {renderPlayerCards()}
+            {renderGameView()}
         </div>
         <div className="md:col-span-3">
           <GameHistory players={sortedPlayersByScore} currentRound={currentRound} totalRounds={startingCardCount} />
