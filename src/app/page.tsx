@@ -13,7 +13,7 @@ import { useEffect } from "react";
 export default function Home() {
   const router = useRouter();
   const { user, loading } = useAuth();
-  const { gameHistory, startNewGame, currentGame } = useGameStore();
+  const { gameHistory, startNewGame, currentGame, isInitialized } = useGameStore();
 
   useEffect(() => {
     if (!loading && !user) {
@@ -48,7 +48,7 @@ export default function Home() {
     router.push('/leaderboard');
   }
 
-  if (loading || !user) {
+  if (loading || !user || !isInitialized) {
     return null; // Or a loading spinner
   }
 

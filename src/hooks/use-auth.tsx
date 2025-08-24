@@ -16,23 +16,23 @@ const AuthContext = createContext<AuthContextType>({ user: null, loading: true }
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const { initializeFirestore, clearStore, isInitialized } = useGameStore();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
-      setLoading(false);
-      
-      // Initialize Firestore sync when user logs in
       if (user) {
-        useGameStore.getState().initializeFirestore(user.uid);
+        if (!isInitialized) {
+          initializeFirestore(user.uid);
+        }
       } else {
-        // Clear store on logout
-        useGameStore.getState().clearStore();
+        clearStore();
       }
+      setLoading(false);
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [initializeFirestore, clearStore, isInitialized]);
 
   return (
     <AuthContext.Provider value={{ user, loading }}>
