@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useTransition } from 'react';
 import type { Player } from '@/types';
 import GameHistory from './game-history';
 import { Button } from './ui/button';
@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import BiddingView from './bidding-view';
 import ScoringView from './scoring-view';
+import { passTurn } from '@/app/actions';
 
 interface GameBoardProps {
   initialPlayers: Player[];
@@ -25,11 +26,22 @@ export default function GameBoard({ initialPlayers, startingCardCount, onRestart
   const [players, setPlayers] = useState<Player[]>(initialPlayers);
   const [currentRound, setCurrentRound] = useState(1);
   const [gamePhase, setGamePhase] = useState<GamePhase>('bidding');
+  const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 
   const handleBidChange = (playerId: string, bid: number | null) => {
-    setPlayers(players.map(p => (p.id === playerId ? { ...p, currentBid: bid } : p)));
+    const updatedPlayersWithBid = players.map(p => (p.id === playerId ? { ...p, currentBid: bid } : p));
+    setPlayers(updatedPlayersWithBid);
+
+    // After setting the bid, pass the turn
+    if (bid !== null) {
+      startTransition(async () => {
+        const playersWithTurnPassed = await passTurn(updatedPlayersWithBid, playerId);
+        setPlayers(playersWithTurnPassed);
+      });
+    }
   };
+
 
   const handleTricksChange = (playerId: string, tricks: number | null) => {
     setPlayers(players.map(p => (p.id === playerId ? { ...p, currentTricks: tricks } : p)));
@@ -186,7 +198,7 @@ export default function GameBoard({ initialPlayers, startingCardCount, onRestart
                 </AlertDialog>
 
                 {gamePhase === 'bidding' && (
-                  <Button onClick={handleStartScoring} disabled={!allBidsIn}>
+                  <Button onClick={handleStartScoring} disabled={!allBidsIn || isPending}>
                     Record Tricks
                   </Button>
                 )}
