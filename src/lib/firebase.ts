@@ -17,24 +17,12 @@ const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 
-// Connect to emulators if in development environment
-if (process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_USE_EMULATORS === 'true') {
-  try {
-    // Make sure emulators are running
-    connectAuthEmulator(auth, "http://127.0.0.1:9099", { disableWarnings: true });
-    connectFirestoreEmulator(db, "127.0.0.1", 8080);
-    console.log("Connected to Firebase Emulators");
-  } catch (error) {
-    console.error("Error connecting to Firebase Emulators:", error);
-  }
-}
-
-
 // Authentication functions
 export const signUp = async (email: string, password: string, name: string, age: number) => {
   const userCredential = await createUserWithEmailAndPassword(auth, email, password);
   const user = userCredential.user;
 
+  // Create a document for the new user in the 'users' collection
   try {
     await setDoc(doc(db, "users", user.uid), {
       uid: user.uid,
@@ -44,8 +32,8 @@ export const signUp = async (email: string, password: string, name: string, age:
     });
   } catch (error) {
     console.error("Error creating user document in Firestore:", error);
-    // Even if this fails, the user is already created in Firebase Auth.
-    // In a production app, you might want to handle this more robustly, e.g., with a retry mechanism or logging.
+    // This error should be handled in a production app, e.g., by logging or a retry mechanism.
+    // For now, the user is created in Auth, but their profile data might be missing.
   }
   
   return userCredential;
