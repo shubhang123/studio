@@ -1,7 +1,7 @@
 
 import { initializeApp, getApps, getApp, type FirebaseOptions } from 'firebase/app';
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut as firebaseSignOut, onAuthStateChanged, connectAuthEmulator } from 'firebase/auth';
-import { getFirestore, doc, setDoc, connectFirestoreEmulator } from 'firebase/firestore';
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut as firebaseSignOut, onAuthStateChanged } from 'firebase/auth';
+import { getFirestore, doc, setDoc } from 'firebase/firestore';
 
 const firebaseConfig: FirebaseOptions = {
     apiKey: "AIzaSyDuYuO-5f7ERUdmnAdbLNC4ejWicxl_1u8",
@@ -24,9 +24,10 @@ export const signUp = async (email: string, password: string, name: string, age:
 
   // Create a document for the new user in the 'users' collection
   try {
+    const userEmail = user.email ? user.email.toLowerCase() : '';
     await setDoc(doc(db, "users", user.uid), {
       uid: user.uid,
-      email: user.email,
+      email: userEmail,
       name: name,
       age: age,
     });
