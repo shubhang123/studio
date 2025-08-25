@@ -26,11 +26,12 @@ export async function createNewGame(playerSetups: PlayerSetup[], startingCardCou
     streak: 0,
     isBidSuccessful: null,
     isDealer: index === 0,
+    isGuest: !setup.uid,
   }));
 
   const newGame: Omit<GameState, 'id'> = {
     players: newPlayers,
-    playerIds: playerSetups.filter(p => p.uid).map(p => p.uid!), // Only include UIDs of registered players
+    playerIds: playerSetups.filter(p => p.uid && !p.isGuest).map(p => p.uid!), // Only include UIDs of registered players
     hostId: hostId,
     currentRound: 1,
     startingCardCount,

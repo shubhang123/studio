@@ -4,7 +4,7 @@ export interface PlayerSetup {
   name: string;
   email?: string; // Optional for guest players
   avatarColor: string;
-  isGuest: boolean;
+  isGuest?: boolean; // Optional, will default to true if no UID
 }
 
 export interface Player extends PlayerSetup {
@@ -16,6 +16,7 @@ export interface Player extends PlayerSetup {
   streak: number;
   isBidSuccessful: boolean | null;
   isDealer: boolean;
+  isGuest: boolean;
 }
 
 export interface GameConfig {
