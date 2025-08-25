@@ -43,7 +43,7 @@ export default function GameSetup({ onStartGame }: GameSetupProps) {
 
   const resetPlayers = (type: 'online' | 'local') => {
     setGameType(type);
-    if (user) {
+    if (user && type === 'online') {
       const hostPlayer: PlayerSetup = {
           uid: user.uid,
           name: user.displayName || user.email?.split('@')[0] || 'Host',
@@ -58,7 +58,6 @@ export default function GameSetup({ onStartGame }: GameSetupProps) {
   }
 
   useEffect(() => {
-    // Add the host as the first player automatically
     if (user) {
       resetPlayers('online');
     }
@@ -265,3 +264,5 @@ export default function GameSetup({ onStartGame }: GameSetupProps) {
     </Card>
   );
 }
+
+    
