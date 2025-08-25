@@ -1,250 +1,130 @@
 
 import { create } from 'zustand';
-import type { Player, GameState, PlayerSetup, GameConfig } from '@/types';
+import type { Player, GameState } from '@/types';
 import { calculateScores, checkForPerfectGameBonus } from '@/lib/game-logic';
-import { doc, setDoc, onSnapshot, getDoc } from 'firebase/firestore';
+import { doc, setDoc, onSnapshot, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { updateUserStats } from '@/app/actions';
 
 type GameStore = {
   currentGame: GameState | null;
-  gameHistory: GameState[];
-  isInitialized: boolean;
-  initializeFirestore: (userId: string) => void;
-  clearStore: () => void;
-  startNewGame: () => void;
-  startGame: (playerSetups: PlayerSetup[], startingCardCount: number, config: GameConfig) => void;
-  restartGame: () => void;
-  endGame: () => void;
+  isGameLoading: boolean;
+  loadGame: (gameId: string) => void;
+  clearCurrentGame: () => void;
   setGamePhase: (phase: GameState['gamePhase']) => void;
   updateBid: (playerId: string, bid: number | null) => void;
   updateTricks: (playerId: string, tricks: number | null) => void;
   scoreRound: () => void;
   nextRound: () => void;
+  endGame: () => void;
 };
-
-const getInitialState = (): GameState => ({
-    id: `game_${Date.now()}`,
-    players: [],
-    currentRound: 1,
-    startingCardCount: 13,
-    gamePhase: 'setup',
-    timestamp: Date.now(),
-    config: {
-        enableStreakBonus: true,
-        enablePerfectGameBonus: true,
-    }
-});
 
 let firestoreUnsubscribe: (() => void) | null = null;
-let userId: string | null = null;
-
-const saveStateToFirestore = async (state: { currentGame: GameState | null, gameHistory: GameState[] }) => {
-  if (!userId) return;
-  try {
-    const docRef = doc(db, 'userGames', userId);
-    await setDoc(docRef, {
-      currentGame: state.currentGame,
-      gameHistory: state.gameHistory,
-    });
-  } catch (error) {
-    console.error("Error saving state to Firestore: ", error);
-  }
-};
 
 export const useGameStore = create<GameStore>()((set, get) => ({
   currentGame: null,
-  gameHistory: [],
-  isInitialized: false,
+  isGameLoading: true,
 
-  initializeFirestore: async (uid) => {
-    if (get().isInitialized) return;
-    userId = uid;
+  loadGame: (gameId) => {
+    if (firestoreUnsubscribe) {
+      firestoreUnsubscribe();
+    }
+    set({ isGameLoading: true });
     
-    if (firestoreUnsubscribe) firestoreUnsubscribe();
-
-    const docRef = doc(db, 'userGames', userId);
+    const docRef = doc(db, 'games', gameId);
 
     firestoreUnsubscribe = onSnapshot(docRef, (docSnap) => {
       if (docSnap.exists()) {
-        const data = docSnap.data();
-        set({ currentGame: data.currentGame, gameHistory: data.gameHistory, isInitialized: true });
+        const gameData = { id: docSnap.id, ...docSnap.data() } as GameState;
+        set({ currentGame: gameData, isGameLoading: false });
       } else {
-         // If no data, initialize with empty state and create the document
-        const initialState = { currentGame: null, gameHistory: [] };
-        set({ ...initialState, isInitialized: true });
-        saveStateToFirestore(initialState).catch(e => console.error("Failed to create initial doc", e));
+        console.error("Game not found!");
+        set({ currentGame: null, isGameLoading: false });
       }
     }, (error) => {
-        console.error("Firestore snapshot error:", error);
-        // Handle permissions errors or other issues by falling back to a safe state
-        set({ currentGame: null, gameHistory: [], isInitialized: true });
+      console.error("Firestore snapshot error:", error);
+      set({ currentGame: null, isGameLoading: false });
     });
   },
 
-  clearStore: () => {
-    if (firestoreUnsubscribe) firestoreUnsubscribe();
-    firestoreUnsubscribe = null;
-    userId = null;
-    set({ currentGame: null, gameHistory: [], isInitialized: false });
-  },
-
-  startNewGame: () => {
-    const newState = { currentGame: getInitialState(), gameHistory: get().gameHistory };
-    set({ currentGame: newState.currentGame });
-    saveStateToFirestore(newState);
-  },
-  
-  startGame: (playerSetups, startingCardCount, config) => {
-    const newPlayers: Player[] = playerSetups.map((setup, index) => ({
-      ...setup,
-      id: setup.uid, // Use UID as the player ID
-      totalScore: 0,
-      bidHistory: [],
-      currentBid: null,
-      currentTricks: null,
-      streak: 0,
-      isBidSuccessful: null,
-      isDealer: index === 0,
-    }));
-    
-    const newCurrentGame = {
-      ...(get().currentGame ?? getInitialState()),
-      players: newPlayers,
-      startingCardCount,
-      config,
-      currentRound: 1,
-      gamePhase: 'bidding' as const,
-      timestamp: Date.now(),
-    };
-
-    const newState = { currentGame: newCurrentGame, gameHistory: get().gameHistory };
-    set({ currentGame: newCurrentGame });
-    saveStateToFirestore(newState);
-  },
-
-  restartGame: () => {
-    const currentGame = get().currentGame;
-    if (!currentGame) return;
-    
-    // Create a fresh game state instead of reusing old player objects
-    const newGame = getInitialState();
-    const refreshedCurrentGame = {
-      ...newGame,
-      players: currentGame.players.map(p => ({
-        ...p,
-        totalScore: 0,
-        bidHistory: [],
-        currentBid: null,
-        currentTricks: null,
-        streak: 0,
-        isBidSuccessful: null,
-      })),
-      startingCardCount: currentGame.startingCardCount,
-      config: currentGame.config,
+  clearCurrentGame: () => {
+    if (firestoreUnsubscribe) {
+      firestoreUnsubscribe();
+      firestoreUnsubscribe = null;
     }
-
-    const newState = { currentGame: refreshedCurrentGame, gameHistory: get().gameHistory };
-    set({ currentGame: refreshedCurrentGame });
-    saveStateToFirestore(newState);
-    // After restarting, go to setup
-    get().startNewGame();
+    set({ currentGame: null });
   },
 
-  endGame: async () => {
-    const state = get();
-    if (!state.currentGame || state.currentGame.gamePhase === 'game-over') return;
-    
-    let finalPlayers = checkForPerfectGameBonus(
-        state.currentGame.players, 
-        state.currentGame.startingCardCount,
-        state.currentGame.config
-    );
-
-    const finalGameState = {
-        ...state.currentGame,
-        players: finalPlayers,
-        gamePhase: 'game-over' as const
-    };
-    
-    set({ currentGame: finalGameState }); // Show game over screen first
-
-    // Update global leaderboards
-    await updateUserStats(finalGameState.players);
-
-    const newHistory = [...state.gameHistory, finalGameState];
-    // Set currentGame to null after archiving it
-    const newState = { currentGame: null, gameHistory: newHistory };
-
-    set(newState);
-    saveStateToFirestore(newState);
+  setGamePhase: async (phase) => {
+    const { currentGame } = get();
+    if (!currentGame) return;
+    try {
+      const gameRef = doc(db, 'games', currentGame.id);
+      await updateDoc(gameRef, { gamePhase: phase });
+    } catch (error) {
+      console.error("Error updating game phase:", error);
+    }
   },
 
-  setGamePhase: (phase) => {
-    const state = get();
-    if (!state.currentGame) return;
+  updateBid: async (playerId, bid) => {
+    const { currentGame } = get();
+    if (!currentGame) return;
 
-    const newCurrentGame = { ...state.currentGame, gamePhase: phase };
-    const newState = { currentGame: newCurrentGame, gameHistory: state.gameHistory };
-    set({ currentGame: newCurrentGame });
-    saveStateToFirestore(newState);
-  },
-
-  updateBid: (playerId, bid) => {
-    const state = get();
-    if (!state.currentGame) return;
-
-    const updatedPlayers = state.currentGame.players.map((p) =>
+    const updatedPlayers = currentGame.players.map((p) =>
       p.id === playerId ? { ...p, currentBid: bid } : p
     );
-    
-    const newCurrentGame = { ...state.currentGame, players: updatedPlayers };
-    const newState = { currentGame: newCurrentGame, gameHistory: state.gameHistory };
-    set({ currentGame: newCurrentGame });
-    saveStateToFirestore(newState);
+
+    try {
+      const gameRef = doc(db, 'games', currentGame.id);
+      await updateDoc(gameRef, { players: updatedPlayers });
+    } catch (error)      {
+      console.error("Error updating bid:", error);
+    }
   },
 
-  updateTricks: (playerId, tricks) => {
-    const state = get();
-    if (!state.currentGame) return;
+  updateTricks: async (playerId, tricks) => {
+    const { currentGame } = get();
+    if (!currentGame) return;
 
-    const updatedPlayers = state.currentGame.players.map((p) =>
+    const updatedPlayers = currentGame.players.map((p) =>
       p.id === playerId ? { ...p, currentTricks: tricks } : p
     );
-
-    const newCurrentGame = { ...state.currentGame, players: updatedPlayers };
-    const newState = { currentGame: newCurrentGame, gameHistory: state.gameHistory };
-    set({ currentGame: newCurrentGame });
-    saveStateToFirestore(newState);
+     try {
+      const gameRef = doc(db, 'games', currentGame.id);
+      await updateDoc(gameRef, { players: updatedPlayers });
+    } catch (error)      {
+      console.error("Error updating tricks:", error);
+    }
   },
 
-  scoreRound: () => {
-    const state = get();
-    if (!state.currentGame) return;
+  scoreRound: async () => {
+    const { currentGame } = get();
+    if (!currentGame) return;
 
-    const { players, currentRound, config } = state.currentGame;
+    const { players, currentRound, config } = currentGame;
     const updatedPlayers = calculateScores(players, currentRound, config);
     
-    const newCurrentGame = { ...state.currentGame, players: updatedPlayers };
-    const newState = { currentGame: newCurrentGame, gameHistory: state.gameHistory };
-    set({ currentGame: newCurrentGame });
-    saveStateToFirestore(newState);
+     try {
+      const gameRef = doc(db, 'games', currentGame.id);
+      await updateDoc(gameRef, { players: updatedPlayers });
+    } catch (error)      {
+      console.error("Error scoring round:", error);
+    }
   },
 
-  nextRound: () => {
-    const state = get();
-    if (!state.currentGame) return;
+  nextRound: async () => {
+    const { currentGame } = get();
+    if (!currentGame) return;
     
-    // Check if it's the last round
-    if (state.currentGame.currentRound >= state.currentGame.startingCardCount) {
+    if (currentGame.currentRound >= currentGame.startingCardCount) {
         get().endGame();
         return;
     }
 
-    const nextRoundNumber = state.currentGame.currentRound + 1;
-    const dealerIndex = (state.currentGame.currentRound) % state.currentGame.players.length;
+    const nextRoundNumber = currentGame.currentRound + 1;
+    const dealerIndex = (currentGame.currentRound) % currentGame.players.length;
 
-    const playersForNextRound = state.currentGame.players.map((p, index) => ({
+    const playersForNextRound = currentGame.players.map((p, index) => ({
         ...p,
         currentBid: null,
         currentTricks: null,
@@ -252,14 +132,37 @@ export const useGameStore = create<GameStore>()((set, get) => ({
         isDealer: index === dealerIndex,
     }));
 
-    const newCurrentGame = {
-        ...state.currentGame,
-        players: playersForNextRound,
-        currentRound: nextRoundNumber,
-        gamePhase: 'bidding' as const,
-    };
-    const newState = { currentGame: newCurrentGame, gameHistory: state.gameHistory };
-    set({ currentGame: newCurrentGame });
-    saveStateToFirestore(newState);
-  }
+     try {
+      const gameRef = doc(db, 'games', currentGame.id);
+      await updateDoc(gameRef, { 
+          players: playersForNextRound,
+          currentRound: nextRoundNumber,
+          gamePhase: 'bidding'
+      });
+    } catch (error)      {
+      console.error("Error starting next round:", error);
+    }
+  },
+
+  endGame: async () => {
+    const { currentGame } = get();
+    if (!currentGame || currentGame.gamePhase === 'game-over') return;
+    
+    let finalPlayers = checkForPerfectGameBonus(
+        currentGame.players, 
+        currentGame.startingCardCount,
+        currentGame.config
+    );
+
+    try {
+      const gameRef = doc(db, 'games', currentGame.id);
+      await updateDoc(gameRef, { 
+          players: finalPlayers,
+          gamePhase: 'game-over'
+      });
+      await updateUserStats(finalPlayers);
+    } catch (error) {
+      console.error("Error ending game:", error);
+    }
+  },
 }));

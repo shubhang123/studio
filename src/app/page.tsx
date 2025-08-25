@@ -1,52 +1,54 @@
 
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
-import { useGameStore } from "@/hooks/use-game-store";
 import { BarChart, Gamepad2, Play, Users, Trophy } from "lucide-react";
 import { DiamondIcon } from "@/components/icons";
 import { useAuth } from "@/hooks/use-auth";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { getActiveGames } from "./actions";
+import type { GameState } from "@/types";
+import { Skeleton } from "@/components/ui/skeleton";
+
+function GameListSkeleton() {
+    return (
+        <div className="space-y-4">
+            <Skeleton className="h-32 w-full" />
+            <Skeleton className="h-12 w-full" />
+        </div>
+    )
+}
 
 export default function Home() {
   const router = useRouter();
-  const { user, loading } = useAuth();
-  const { gameHistory, startNewGame, currentGame, isInitialized } = useGameStore();
+  const { user, loading: authLoading } = useAuth();
+  const [activeGames, setActiveGames] = useState<GameState[]>([]);
+  const [loadingGames, setLoadingGames] = useState(true);
 
   useEffect(() => {
-    if (!loading && !user) {
+    if (!authLoading && !user) {
       router.push('/auth');
+    } else if (user) {
+        setLoadingGames(true);
+        getActiveGames(user.uid).then(games => {
+            setActiveGames(games);
+            setLoadingGames(false);
+        });
     }
-  }, [user, loading, router]);
+  }, [user, authLoading, router]);
 
-  if (loading || !user || !isInitialized) {
-    return null; // Or a loading spinner
+  if (authLoading || !user) {
+    return <div className="min-h-screen flex items-center justify-center"><GameListSkeleton /></div>;
   }
 
-  // Move calculations inside the component and after the loading guard
-  const totalGamesPlayed = gameHistory.length;
-  const uniquePlayers = new Set(
-    gameHistory.flatMap((game) => game.players.map((p) => p.name))
-  );
-
-  const allBids = gameHistory.flatMap((game) =>
-    game.players.flatMap((p) => p.bidHistory)
-  );
-  const successfulBids = allBids.filter((h) => h.bid === h.tricks).length;
-  const bidSuccessRate =
-    allBids.length > 0
-      ? Math.round((successfulBids / allBids.length) * 100)
-      : 0;
-
   const handleStartNewGame = () => {
-    startNewGame();
     router.push("/setup");
   };
   
-  const handleResumeGame = () => {
-    router.push('/game');
+  const handleResumeGame = (gameId: string) => {
+    router.push(`/game?id=${gameId}`);
   }
   
   const handleViewLeaderboard = () => {
@@ -62,60 +64,40 @@ export default function Home() {
         </h1>
       </header>
       <div className="w-full max-w-4xl space-y-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card className="bg-card/80 backdrop-blur-sm">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Total Games Played
-              </CardTitle>
-              <Gamepad2 className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{totalGamesPlayed}</div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/80 backdrop-blur-sm">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Unique Players
-              </CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{uniquePlayers.size}</div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/80 backdrop-blur-sm">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Bid Success Rate
-              </CardTitle>
-              <BarChart className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{bidSuccessRate}%</div>
-            </CardContent>
-          </Card>
-        </div>
-
         <div className="space-y-4 text-center">
-           {currentGame && currentGame.players.length > 0 ? (
+           {loadingGames ? (
+             <GameListSkeleton />
+           ) : activeGames.length > 0 ? (
             <div className="space-y-4">
               <Card className="bg-secondary/80 backdrop-blur-sm text-center p-6 border-accent">
                 <CardHeader>
-                    <CardTitle>Game in Progress</CardTitle>
-                    <p className="text-muted-foreground">
-                      Round {currentGame.currentRound} with {currentGame.players.map(p => p.name).join(', ')}
-                    </p>
+                    <CardTitle>Your Active Games</CardTitle>
+                    <CardDescription>
+                      Select a game to resume playing.
+                    </CardDescription>
                 </CardHeader>
-                <CardContent>
-                    <Button size="lg" onClick={handleResumeGame} variant="default" className="bg-accent text-accent-foreground hover:bg-accent/90">
-                        <Play className="mr-2" /> Resume Game
-                    </Button>
+                <CardContent className="space-y-3">
+                    {activeGames.map(game => (
+                       <Button 
+                         key={game.id} 
+                         size="lg" 
+                         onClick={() => handleResumeGame(game.id)} 
+                         variant="default" 
+                         className="bg-accent text-accent-foreground hover:bg-accent/90 w-full justify-between"
+                       >
+                           <span>
+                                <Play className="mr-2 inline" /> 
+                                Game with {game.players.map(p => p.name).join(', ')}
+                           </span>
+                           <span className="text-sm opacity-80">
+                               Round {game.currentRound}
+                           </span>
+                       </Button>
+                    ))}
                 </CardContent>
               </Card>
                <Button size="lg" onClick={handleStartNewGame} variant="outline" className="w-full">
-                Start New Game
+                Start a New Game
               </Button>
             </div>
           ) : (

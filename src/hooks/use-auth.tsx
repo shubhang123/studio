@@ -16,24 +16,14 @@ const AuthContext = createContext<AuthContextType>({ user: null, loading: true }
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const { initializeFirestore, clearStore, isInitialized } = useGameStore();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
-      if (user) {
-        // We ensure initialization happens only once for a given user session
-        if (!isInitialized) {
-          initializeFirestore(user.uid);
-        }
-      } else {
-        clearStore();
-      }
       setLoading(false);
     });
 
     return () => unsubscribe();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (

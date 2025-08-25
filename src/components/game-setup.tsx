@@ -34,6 +34,7 @@ export default function GameSetup({ onStartGame }: GameSetupProps) {
   });
   const [inviteEmail, setInviteEmail] = useState("");
   const [isSearching, setIsSearching] = useState(false);
+  const [isStarting, setIsStarting] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -41,13 +42,13 @@ export default function GameSetup({ onStartGame }: GameSetupProps) {
     if (user && players.length === 0) {
       const hostPlayer: PlayerSetup = {
           uid: user.uid,
-          name: user.email?.split('@')[0] || 'Host',
+          name: user.displayName || user.email?.split('@')[0] || 'Host',
           email: user.email!,
           avatarColor: AVATAR_COLORS[0]
       };
       setPlayers([hostPlayer]);
     }
-  }, [user, players.length]);
+  }, [user, players]);
 
   const handleAddPlayer = async () => {
     if (!inviteEmail) return;
@@ -55,7 +56,7 @@ export default function GameSetup({ onStartGame }: GameSetupProps) {
       toast({ title: "Maximum Players", description: "You can have a maximum of 8 players.", variant: "destructive" });
       return;
     }
-    if (players.some(p => p.email === inviteEmail)) {
+    if (players.some(p => p.email.toLowerCase() === inviteEmail.toLowerCase())) {
       toast({ title: "Player Already Added", description: "This player is already in the game.", variant: "destructive" });
       setInviteEmail("");
       return;
@@ -101,6 +102,7 @@ export default function GameSetup({ onStartGame }: GameSetupProps) {
       toast({ title: "Invalid Setup", description: "You need at least two players to start a game.", variant: "destructive" });
       return;
     }
+    setIsStarting(true);
     onStartGame(players, startingCardCount, config);
   };
   
@@ -201,8 +203,8 @@ export default function GameSetup({ onStartGame }: GameSetupProps) {
         </div>
       </CardContent>
       <CardFooter>
-        <Button onClick={handleStartGame} className="w-full" disabled={players.length < 2}>
-          Start Game
+        <Button onClick={handleStartGame} className="w-full" disabled={players.length < 2 || isStarting}>
+          {isStarting ? <Loader2 className="animate-spin" /> : 'Start Game'}
         </Button>
       </CardFooter>
     </Card>

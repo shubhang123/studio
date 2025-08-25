@@ -25,6 +25,8 @@ export interface GameConfig {
 export interface GameState {
   id: string;
   players: Player[];
+  playerIds: string[];
+  hostId: string;
   currentRound: number;
   startingCardCount: number;
   gamePhase: 'setup' | 'bidding' | 'scoring' | 'round-end' | 'game-over';

@@ -3,8 +3,8 @@
 
 import { revalidatePath } from "next/cache";
 import { getBidSuggestion } from "@/ai/flows/smart-bidding-advisor";
-import type { Player, BidSuggestion, LeaderboardPlayer } from "@/types";
-import { collection, getDocs, query, where, doc, getDoc, runTransaction, orderBy } from "firebase/firestore";
+import type { Player, BidSuggestion, LeaderboardPlayer, GameState, PlayerSetup, GameConfig } from "@/types";
+import { collection, getDocs, query, where, doc, getDoc, runTransaction, orderBy, writeBatch, serverTimestamp, addDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
 interface GetBidSuggestionParams {
@@ -13,6 +13,40 @@ interface GetBidSuggestionParams {
   currentRound: number;
   startingCardCount: number;
 }
+
+export async function createNewGame(playerSetups: PlayerSetup[], startingCardCount: number, config: GameConfig, hostId: string): Promise<string> {
+  const newPlayers: Player[] = playerSetups.map((setup, index) => ({
+    ...setup,
+    id: setup.uid,
+    totalScore: 0,
+    bidHistory: [],
+    currentBid: null,
+    currentTricks: null,
+    streak: 0,
+    isBidSuccessful: null,
+    isDealer: index === 0,
+  }));
+
+  const newGame: Omit<GameState, 'id'> = {
+    players: newPlayers,
+    playerIds: playerSetups.map(p => p.uid),
+    hostId: hostId,
+    currentRound: 1,
+    startingCardCount,
+    gamePhase: 'bidding',
+    timestamp: Date.now(),
+    config,
+  };
+
+  try {
+    const docRef = await addDoc(collection(db, "games"), newGame);
+    return docRef.id;
+  } catch (error) {
+    console.error("Error creating new game:", error);
+    throw new Error("Failed to create game.");
+  }
+}
+
 
 export async function getAiBidSuggestion({
   player,
@@ -145,4 +179,24 @@ export async function getLeaderboard(): Promise<LeaderboardPlayer[]> {
     console.error("Error fetching leaderboard:", error);
     return [];
   }
+}
+
+export async function getActiveGames(userId: string): Promise<GameState[]> {
+    if (!userId) return [];
+    try {
+        const gamesRef = collection(db, "games");
+        const q = query(gamesRef, where("playerIds", "array-contains", userId));
+        const querySnapshot = await getDocs(q);
+
+        const games: GameState[] = [];
+        querySnapshot.forEach((doc) => {
+            if (doc.data().gamePhase !== 'game-over') {
+                 games.push({ id: doc.id, ...doc.data() } as GameState);
+            }
+        });
+        return games;
+    } catch (error) {
+        console.error("Error fetching active games:", error);
+        return [];
+    }
 }

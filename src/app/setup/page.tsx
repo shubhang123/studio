@@ -3,33 +3,41 @@
 
 import GameSetup from '@/components/game-setup';
 import { DiamondIcon } from '@/components/icons';
-import { useGameStore } from '@/hooks/use-game-store';
 import { useRouter } from 'next/navigation';
 import type { PlayerSetup, GameConfig } from '@/types';
 import { useEffect } from 'react';
 import { useAuth } from '@/hooks/use-auth';
+import { createNewGame } from '../actions';
+import { useToast } from '@/hooks/use-toast';
 
 export default function SetupPage() {
     const router = useRouter();
     const { user, loading } = useAuth();
-    const { startGame, currentGame } = useGameStore();
+    const { toast } = useToast();
 
     useEffect(() => {
         if (!loading && !user) {
             router.push('/auth');
-        } else if (!loading && user && (!currentGame || (currentGame.players.length > 0 && currentGame.gamePhase !== 'setup'))) {
-             router.push('/');
         }
-    }, [currentGame, router, user, loading]);
+    }, [router, user, loading]);
 
 
-    const handleStartGame = (playerSetups: PlayerSetup[], cards: number, config: GameConfig) => {
-        startGame(playerSetups, cards, config);
-        router.push('/game');
+    const handleStartGame = async (playerSetups: PlayerSetup[], cards: number, config: GameConfig) => {
+        if (!user) return;
+        try {
+            const gameId = await createNewGame(playerSetups, cards, config, user.uid);
+            router.push(`/game?id=${gameId}`);
+        } catch (error) {
+            toast({
+                title: 'Error Starting Game',
+                description: 'Could not create a new game. Please try again.',
+                variant: 'destructive',
+            })
+        }
     }
     
     if (loading || !user) {
-        return null;
+        return null; // Or a loading skeleton
     }
 
     return (
