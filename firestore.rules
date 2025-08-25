@@ -3,24 +3,19 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Users can only read/write their own game data.
+    // A user can only read/write their own game data
     match /userGames/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
-    // Any authenticated user can read user profiles (for searching/inviting)
-    // but cannot write to them directly.
+    // Any authenticated user can list/query user profiles (for searching/inviting)
     match /users/{userId} {
-      allow read: if request.auth != null;
-      allow write: if false; // Writes should be handled by secure server logic (e.g. sign up)
+      allow get, list: if request.auth != null;
     }
-
-    // Any authenticated user can read the leaderboard.
-    // Writes are handled by secure server-side logic (actions.ts).
+    
+    // Any authenticated user can read/query the leaderboard
     match /leaderboard/{userId} {
-      allow read: if request.auth != null;
-      allow write: if false; // Prevent clients from writing their own scores
+      allow get, list: if request.auth != null;
     }
   }
 }
