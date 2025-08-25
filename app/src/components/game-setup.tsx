@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -12,7 +11,6 @@ import { Slider } from "@/components/ui/slider";
 import type { PlayerSetup, GameConfig } from "@/types";
 import { Avatar, AvatarFallback } from "./ui/avatar";
 import { Switch } from "./ui/switch";
-import { findUserByEmail } from "@/app/actions";
 import { useAuth } from "@/hooks/use-auth";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -24,6 +22,20 @@ const AVATAR_COLORS = [
     '#FF5733', '#33FF57', '#3357FF', '#FF33A1', 
     '#A133FF', '#33FFA1', '#FFC300', '#FF3333'
 ];
+
+async function findUserByEmail(email: string): Promise<{ uid: string; name: string; email: string } | null> {
+  try {
+    const response = await fetch(`/api/users/find-by-email?email=${encodeURIComponent(email)}`);
+    if (!response.ok) {
+        return null;
+    }
+    return await response.json();
+  } catch (error) {
+    console.error("Error finding user by email:", error);
+    return null;
+  }
+}
+
 
 export default function GameSetup({ onStartGame }: GameSetupProps) {
   const { user } = useAuth();
@@ -61,7 +73,6 @@ export default function GameSetup({ onStartGame }: GameSetupProps) {
     if (user) {
       resetPlayers('online');
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const handleAddOnlinePlayer = async () => {
@@ -116,7 +127,6 @@ export default function GameSetup({ onStartGame }: GameSetupProps) {
 
 
   const handleRemovePlayer = (id: string) => {
-    // Prevent host from being removed
     if (user && id === user.uid) {
         toast({ title: "Cannot Remove Host", description: "The game host cannot be removed.", variant: "destructive"});
         return;
@@ -138,7 +148,7 @@ export default function GameSetup({ onStartGame }: GameSetupProps) {
   };
   
   if (!user) {
-    return null; // Should not happen due to page protection
+    return null;
   }
 
   return (
