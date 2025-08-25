@@ -33,8 +33,6 @@ export const signUp = async (email: string, password: string, name: string, age:
     });
   } catch (error) {
     console.error("Error creating user document in Firestore:", error);
-    // This error should be handled in a production app, e.g., by logging or a retry mechanism.
-    // For now, the user is created in Auth, but their profile data might be missing.
   }
   
   return userCredential;
