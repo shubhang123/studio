@@ -21,6 +21,11 @@ export default function Home() {
     }
   }, [user, loading, router]);
 
+  if (loading || !user || !isInitialized) {
+    return null; // Or a loading spinner
+  }
+
+  // Move calculations inside the component and after the loading guard
   const totalGamesPlayed = gameHistory.length;
   const uniquePlayers = new Set(
     gameHistory.flatMap((game) => game.players.map((p) => p.name))
@@ -46,10 +51,6 @@ export default function Home() {
   
   const handleViewLeaderboard = () => {
     router.push('/leaderboard');
-  }
-
-  if (loading || !user || !isInitialized) {
-    return null; // Or a loading spinner
   }
 
   return (
