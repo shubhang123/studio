@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -36,13 +36,26 @@ export default function GameSetup({ onStartGame }: GameSetupProps) {
   const [isSearching, setIsSearching] = useState(false);
   const { toast } = useToast();
 
+  useEffect(() => {
+    // Add the host as the first player automatically
+    if (user && players.length === 0) {
+      const hostPlayer: PlayerSetup = {
+          uid: user.uid,
+          name: user.email?.split('@')[0] || 'Host',
+          email: user.email!,
+          avatarColor: AVATAR_COLORS[0]
+      };
+      setPlayers([hostPlayer]);
+    }
+  }, [user, players.length]);
+
   const handleAddPlayer = async () => {
     if (!inviteEmail) return;
     if (players.length >= 8) {
       toast({ title: "Maximum Players", description: "You can have a maximum of 8 players.", variant: "destructive" });
       return;
     }
-    if (players.some(p => p.email === inviteEmail) || user?.email === inviteEmail) {
+    if (players.some(p => p.email === inviteEmail)) {
       toast({ title: "Player Already Added", description: "This player is already in the game.", variant: "destructive" });
       setInviteEmail("");
       return;
@@ -71,6 +84,11 @@ export default function GameSetup({ onStartGame }: GameSetupProps) {
   };
 
   const handleRemovePlayer = (uid: string) => {
+    // Prevent host from being removed
+    if (user && uid === user.uid) {
+        toast({ title: "Cannot Remove Host", description: "The game host cannot be removed.", variant: "destructive"});
+        return;
+    }
     setPlayers(players.filter(p => p.uid !== uid));
   };
 
@@ -79,28 +97,16 @@ export default function GameSetup({ onStartGame }: GameSetupProps) {
   };
 
   const handleStartGame = () => {
-    if (!user) {
-        toast({ title: "Not Logged In", description: "You must be logged in to start a game.", variant: "destructive" });
-        return;
-    }
-    
-    // Add the host to the player list
-    const hostPlayer: PlayerSetup = {
-        uid: user.uid,
-        name: user.email?.split('@')[0] || 'Host',
-        email: user.email!,
-        avatarColor: AVATAR_COLORS[players.length % AVATAR_COLORS.length]
-    };
-
-    const allPlayers = [hostPlayer, ...players];
-
-    if (allPlayers.length < 2) {
+    if (players.length < 2) {
       toast({ title: "Invalid Setup", description: "You need at least two players to start a game.", variant: "destructive" });
       return;
     }
-
-    onStartGame(allPlayers, startingCardCount, config);
+    onStartGame(players, startingCardCount, config);
   };
+  
+  if (!user) {
+    return null; // Should not happen due to page protection
+  }
 
   return (
     <Card className="max-w-2xl mx-auto bg-card/80 backdrop-blur-sm">
@@ -121,17 +127,19 @@ export default function GameSetup({ onStartGame }: GameSetupProps) {
                     </AvatarFallback>
                 </Avatar>
                 <div className="flex-grow">
-                    <p className="font-medium">{player.name}</p>
+                    <p className="font-medium">{player.name} {player.uid === user.uid && '(Host)'}</p>
                     <p className="text-xs text-muted-foreground">{player.email}</p>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => handleRemovePlayer(player.uid)}
-                  aria-label={`Remove ${player.name}`}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
+                {player.uid !== user.uid && (
+                    <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleRemovePlayer(player.uid)}
+                    aria-label={`Remove ${player.name}`}
+                    >
+                    <X className="h-4 w-4" />
+                    </Button>
+                )}
               </div>
             ))}
           </div>
@@ -141,9 +149,9 @@ export default function GameSetup({ onStartGame }: GameSetupProps) {
                   value={inviteEmail}
                   onChange={(e) => setInviteEmail(e.target.value)}
                   placeholder="Enter player's email to invite"
-                  disabled={isSearching}
+                  disabled={isSearching || players.length >= 8}
                 />
-                <Button onClick={handleAddPlayer} disabled={players.length >= 7 || isSearching}>
+                <Button onClick={handleAddPlayer} disabled={players.length >= 8 || isSearching}>
                   {isSearching ? <Loader2 className="animate-spin" /> : <UserPlus />}
                   Add
                 </Button>
@@ -193,7 +201,7 @@ export default function GameSetup({ onStartGame }: GameSetupProps) {
         </div>
       </CardContent>
       <CardFooter>
-        <Button onClick={handleStartGame} className="w-full">
+        <Button onClick={handleStartGame} className="w-full" disabled={players.length < 2}>
           Start Game
         </Button>
       </CardFooter>

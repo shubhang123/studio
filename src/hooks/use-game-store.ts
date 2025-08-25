@@ -2,7 +2,7 @@
 import { create } from 'zustand';
 import type { Player, GameState, PlayerSetup, GameConfig } from '@/types';
 import { calculateScores, checkForPerfectGameBonus } from '@/lib/game-logic';
-import { doc, setDoc, onSnapshot } from 'firebase/firestore';
+import { doc, setDoc, onSnapshot, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { updateUserStats } from '@/app/actions';
 
@@ -70,14 +70,21 @@ export const useGameStore = create<GameStore>()((set, get) => ({
         const data = docSnap.data();
         set({ currentGame: data.currentGame, gameHistory: data.gameHistory, isInitialized: true });
       } else {
-         // If no data, initialize with empty state
-        set({ currentGame: null, gameHistory: [], isInitialized: true });
+         // If no data, initialize with empty state and create the document
+        const initialState = { currentGame: null, gameHistory: [] };
+        set({ ...initialState, isInitialized: true });
+        saveStateToFirestore(initialState).catch(e => console.error("Failed to create initial doc", e));
       }
+    }, (error) => {
+        console.error("Firestore snapshot error:", error);
+        // Handle permissions errors or other issues by falling back to a safe state
+        set({ currentGame: null, gameHistory: [], isInitialized: true });
     });
   },
 
   clearStore: () => {
     if (firestoreUnsubscribe) firestoreUnsubscribe();
+    firestoreUnsubscribe = null;
     userId = null;
     set({ currentGame: null, gameHistory: [], isInitialized: false });
   },
@@ -120,21 +127,33 @@ export const useGameStore = create<GameStore>()((set, get) => ({
     const currentGame = get().currentGame;
     if (!currentGame) return;
     
-    const playerSetups = currentGame.players.map(p => ({ 
-        uid: p.uid,
-        name: p.name, 
-        email: p.email,
-        avatarColor: p.avatarColor 
-    }));
-    const startingCardCount = currentGame.startingCardCount;
-    const config = currentGame.config;
+    // Create a fresh game state instead of reusing old player objects
+    const newGame = getInitialState();
+    const refreshedCurrentGame = {
+      ...newGame,
+      players: currentGame.players.map(p => ({
+        ...p,
+        totalScore: 0,
+        bidHistory: [],
+        currentBid: null,
+        currentTricks: null,
+        streak: 0,
+        isBidSuccessful: null,
+      })),
+      startingCardCount: currentGame.startingCardCount,
+      config: currentGame.config,
+    }
 
-    get().startGame(playerSetups, startingCardCount, config);
+    const newState = { currentGame: refreshedCurrentGame, gameHistory: get().gameHistory };
+    set({ currentGame: refreshedCurrentGame });
+    saveStateToFirestore(newState);
+    // After restarting, go to setup
+    get().startNewGame();
   },
 
   endGame: async () => {
     const state = get();
-    if (!state.currentGame) return;
+    if (!state.currentGame || state.currentGame.gamePhase === 'game-over') return;
     
     let finalPlayers = checkForPerfectGameBonus(
         state.currentGame.players, 
@@ -148,6 +167,8 @@ export const useGameStore = create<GameStore>()((set, get) => ({
         gamePhase: 'game-over' as const
     };
     
+    set({ currentGame: finalGameState }); // Show game over screen first
+
     // Update global leaderboards
     await updateUserStats(finalGameState.players);
 
@@ -215,7 +236,7 @@ export const useGameStore = create<GameStore>()((set, get) => ({
     if (!state.currentGame) return;
     
     // Check if it's the last round
-    if (state.currentGame.currentRound === state.currentGame.startingCardCount) {
+    if (state.currentGame.currentRound >= state.currentGame.startingCardCount) {
         get().endGame();
         return;
     }

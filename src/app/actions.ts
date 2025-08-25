@@ -52,7 +52,7 @@ export async function getAiBidSuggestion({
 export async function findUserByEmail(email: string): Promise<{ uid: string; name: string; email: string } | null> {
   try {
     const usersRef = collection(db, "users");
-    const q = query(usersRef, where("email", "==", email));
+    const q = query(usersRef, where("email", "==", email.toLowerCase()));
     const querySnapshot = await getDocs(q);
     
     if (querySnapshot.empty) {
@@ -73,17 +73,21 @@ export async function findUserByEmail(email: string): Promise<{ uid: string; nam
 
 export async function updateUserStats(players: Player[]) {
   try {
+    if (players.length === 0) return;
+    
     const sortedPlayers = [...players].sort((a, b) => b.totalScore - a.totalScore);
     const winner = sortedPlayers[0];
 
     await runTransaction(db, async (transaction) => {
       for (const player of players) {
+        if (!player.uid) continue;
+        
         const playerRef = doc(db, "leaderboard", player.uid);
         const userRef = doc(db, "users", player.uid);
 
         const [playerDoc, userDoc] = await Promise.all([
             transaction.get(playerRef),
-            transaction.get(userRef)
+            transaction.get(userDoc)
         ]);
         
         const userData = userDoc.data();
@@ -110,9 +114,9 @@ export async function updateUserStats(players: Player[]) {
           const newTotalBidsSuccess = (currentStats.totalBidsSuccess || 0) + successfulBidsInGame;
 
           transaction.update(playerRef, {
-            gamesPlayed: currentStats.gamesPlayed + 1,
-            gamesWon: currentStats.gamesWon + (isWinner ? 1 : 0),
-            totalPoints: currentStats.totalPoints + player.totalScore,
+            gamesPlayed: (currentStats.gamesPlayed || 0) + 1,
+            gamesWon: (currentStats.gamesWon || 0) + (isWinner ? 1 : 0),
+            totalPoints: (currentStats.totalPoints || 0) + player.totalScore,
             totalBidsMade: newTotalBidsMade,
             totalBidsSuccess: newTotalBidsSuccess,
           });
