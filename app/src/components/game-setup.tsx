@@ -199,7 +199,7 @@ export default function GameSetup({ onStartGame }: GameSetupProps) {
                     <p className="font-medium">{player.name} {player.uid === user.uid && '(Host)'}</p>
                     {player.email && <p className="text-xs text-muted-foreground">{player.email}</p>}
                 </div>
-                {player.uid !== user.uid && (
+                {(!player.uid || player.uid !== user.uid) && (
                     <Button
                     variant="ghost"
                     size="icon"
