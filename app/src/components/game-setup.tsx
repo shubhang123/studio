@@ -59,9 +59,10 @@ export default function GameSetup({ onStartGame }: GameSetupProps) {
 
   useEffect(() => {
     // Add the host as the first player automatically
-    if (user && players.length === 0) {
+    if (user) {
       resetPlayers('online');
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const handleAddOnlinePlayer = async () => {
