@@ -54,8 +54,16 @@ export default function LeaderboardPage() {
         }
     }, [user, authLoading, router]);
 
-    if (authLoading) {
-        return null;
+    if (authLoading || !user) {
+        return <div className="min-h-screen flex items-center justify-center"><LeaderboardSkeleton /></div>;
+    }
+
+    const getBidSuccessRate = (player: LeaderboardPlayer) => {
+        if (!player.totalBidsMade || player.totalBidsMade === 0) {
+            return '0%';
+        }
+        const rate = (player.totalBidsSuccess / player.totalBidsMade) * 100;
+        return `${Math.round(rate)}%`;
     }
 
     return (
@@ -82,8 +90,7 @@ export default function LeaderboardPage() {
                                         <TableHead className="w-[50px]">Rank</TableHead>
                                         <TableHead>Player</TableHead>
                                         <TableHead className="text-center">Games Won</TableHead>
-                                        <TableHead className="text-center">Games Played</TableHead>
-                                        <TableHead className="text-center">Win Rate</TableHead>
+                                        <TableHead className="text-center">Bid Success</TableHead>
                                         <TableHead className="text-right">Total Points</TableHead>
                                     </TableRow>
                                 </TableHeader>
@@ -105,9 +112,8 @@ export default function LeaderboardPage() {
                                                 </div>
                                             </TableCell>
                                             <TableCell className="text-center font-code">{player.gamesWon}</TableCell>
-                                            <TableCell className="text-center font-code">{player.gamesPlayed}</TableCell>
                                             <TableCell className="text-center font-code">
-                                                {player.gamesPlayed > 0 ? `${Math.round((player.gamesWon / player.gamesPlayed) * 100)}%` : '0%'}
+                                                {getBidSuccessRate(player)}
                                             </TableCell>
                                             <TableCell className="text-right font-bold font-code">{player.totalPoints}</TableCell>
                                         </TableRow>

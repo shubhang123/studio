@@ -22,6 +22,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
       if (user) {
+        // We ensure initialization happens only once for a given user session
         if (!isInitialized) {
           initializeFirestore(user.uid);
         }
@@ -32,7 +33,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
 
     return () => unsubscribe();
-  }, [initializeFirestore, clearStore, isInitialized]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <AuthContext.Provider value={{ user, loading }}>

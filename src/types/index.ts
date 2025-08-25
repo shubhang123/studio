@@ -52,5 +52,6 @@ export interface LeaderboardPlayer {
     gamesPlayed: number;
     gamesWon: number;
     totalPoints: number;
-    bidSuccessRate: number;
+    totalBidsMade: number;
+    totalBidsSuccess: number;
 }

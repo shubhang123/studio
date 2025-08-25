@@ -152,9 +152,10 @@ export const useGameStore = create<GameStore>()((set, get) => ({
     await updateUserStats(finalGameState.players);
 
     const newHistory = [...state.gameHistory, finalGameState];
-    const newState = { currentGame: finalGameState, gameHistory: newHistory };
+    // Set currentGame to null after archiving it
+    const newState = { currentGame: null, gameHistory: newHistory };
 
-    set({ currentGame: finalGameState, gameHistory: newHistory });
+    set(newState);
     saveStateToFirestore(newState);
   },
 
@@ -212,6 +213,12 @@ export const useGameStore = create<GameStore>()((set, get) => ({
   nextRound: () => {
     const state = get();
     if (!state.currentGame) return;
+    
+    // Check if it's the last round
+    if (state.currentGame.currentRound === state.currentGame.startingCardCount) {
+        get().endGame();
+        return;
+    }
 
     const nextRoundNumber = state.currentGame.currentRound + 1;
     const dealerIndex = (state.currentGame.currentRound) % state.currentGame.players.length;

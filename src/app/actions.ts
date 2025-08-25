@@ -91,6 +91,9 @@ export async function updateUserStats(players: Player[]) {
 
         const isWinner = player.uid === winner.uid;
         
+        const successfulBidsInGame = player.bidHistory.filter(h => h.bid === h.tricks).length;
+        const totalBidsInGame = player.bidHistory.length;
+
         if (!playerDoc.exists()) {
           transaction.set(playerRef, {
             name: userData.name,
@@ -98,18 +101,20 @@ export async function updateUserStats(players: Player[]) {
             gamesPlayed: 1,
             gamesWon: isWinner ? 1 : 0,
             totalPoints: player.totalScore,
-            bidSuccessRate: player.bidHistory.filter(h => h.bid === h.tricks).length / player.bidHistory.length,
+            totalBidsMade: totalBidsInGame,
+            totalBidsSuccess: successfulBidsInGame,
           });
         } else {
-          const currentStats = playerDoc.data();
-          const totalSuccessfulBids = (currentStats.bidSuccessRate * currentStats.gamesPlayed * 10) + player.bidHistory.filter(h => h.bid === h.tricks).length; // Approximation
-          const totalBids = (currentStats.gamesPlayed * 10) + player.bidHistory.length;
+          const currentStats = playerDoc.data() as Omit<LeaderboardPlayer, 'uid'>;
+          const newTotalBidsMade = (currentStats.totalBidsMade || 0) + totalBidsInGame;
+          const newTotalBidsSuccess = (currentStats.totalBidsSuccess || 0) + successfulBidsInGame;
 
           transaction.update(playerRef, {
             gamesPlayed: currentStats.gamesPlayed + 1,
             gamesWon: currentStats.gamesWon + (isWinner ? 1 : 0),
             totalPoints: currentStats.totalPoints + player.totalScore,
-            bidSuccessRate: totalBids > 0 ? totalSuccessfulBids / totalBids : 0,
+            totalBidsMade: newTotalBidsMade,
+            totalBidsSuccess: newTotalBidsSuccess,
           });
         }
       }
