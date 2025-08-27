@@ -85,21 +85,23 @@ export async function getAiBidSuggestion({
 
 export async function findUserByEmail(email: string): Promise<{ uid: string; name: string; email: string } | null> {
   try {
-    const usersRef = collection(db, "users");
+    const usersRef = collection(db, "users");    
     const q = query(usersRef, where("email", "==", email.toLowerCase()));
+    console.log(q,"quertet");
     const querySnapshot = await getDocs(q);
-    
     if (querySnapshot.empty) {
       return null;
     }
 
     const userData = querySnapshot.docs[0].data();
+    
     return {
       uid: querySnapshot.docs[0].id,
       name: userData.name,
       email: userData.email,
     };
-  } catch (error) {
+  } 
+  catch (error) {
     console.error("Error finding user by email:", error);
     return null;
   }

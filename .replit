@@ -17,4 +17,8 @@ mode = "sequential"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "npm run dev"
+args = "NODE_OPTIONS=\"--max-old-space-size=4096\" npm run dev -- --port 5000 --hostname 0.0.0.0"
+
+[[ports]]
+localPort = 3000
+externalPort = 80

@@ -19,24 +19,37 @@ export const db = getFirestore(app);
 
 // Authentication functions
 export const signUp = async (email: string, password: string, name: string, age: number) => {
-  const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-  const user = userCredential.user;
-
-  // Create a document for the new user in the 'users' collection
   try {
+    // Create user with Firebase Auth
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    const user = userCredential.user;
+
+    // Prepare user document data
     const userEmail = user.email ? user.email.toLowerCase() : '';
-    await setDoc(doc(db, "users", user.uid), {
+    const userData = {
       uid: user.uid,
       email: userEmail,
-      name: name,
+      name: name.trim(), // Remove extra whitespace
       age: age,
-    });
-  } catch (error) {
-    console.error("Error creating user document in Firestore:", error);
+      createdAt: new Date().toISOString(),
+      emailVerified: user.emailVerified, // Track verification status
+    };
+
+    // Create document in Firestore
+    await setDoc(doc(db, "users", user.uid), userData);
+    
+    console.log("User document created successfully in Firestore");
+    return userCredential;
+    
+  } catch (error: any) {
+    // If Firestore fails after user creation, we should handle cleanup
+    console.error("Error in signup process:", error);
+    
+    // Re-throw the error to be handled by the calling component
+    throw new Error(error.message || "Failed to create account");
   }
-  
-  return userCredential;
 };
+
 
 export const signIn = (email, password) => {
   return signInWithEmailAndPassword(auth, email, password);
