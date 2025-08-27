@@ -1,6 +1,7 @@
 
 "use client";
 
+
 import GameBoard from '@/components/game-board';
 import { DiamondIcon } from '@/components/icons';
 import { useGameStore } from '@/hooks/use-game-store';
@@ -8,8 +9,10 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useCallback } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Suspense } from 'react';
 
-export default function GamePage() {
+
+function GamePageContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const gameId = searchParams.get('id');
@@ -30,7 +33,6 @@ export default function GamePage() {
         } else if (!authLoading && user && !gameId) {
             router.push('/');
         }
-        
         // Cleanup when component unmounts or gameId changes
         return () => {
             if (gameId) {
@@ -79,4 +81,12 @@ export default function GamePage() {
             </div>
         </div>
     )
+}
+
+export default function GamePage() {
+    return (
+        <Suspense fallback={<div>Loading...</div>}>
+            <GamePageContent />
+        </Suspense>
+    );
 }
